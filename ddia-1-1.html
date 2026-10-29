@@ -9,6 +9,7 @@
   --bg:#1c1d22; --panel:#25262d; --panel-2:#2d2f37; --text:#e4e6eb;
   --muted:#9a9fad; --accent:#7aa2f7; --ok:#6fcf97; --bad:#f2827a;
   --warn:#e6c07b; --line:#3a3d48; --radius:12px;
+  --hl:#f6e05e; --hl-bg:rgba(246,224,94,.22);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:16px;line-height:1.7;min-height:100vh}
@@ -101,6 +102,140 @@ pre code{background:none;padding:0;font-size:13px}
 .finish-btn:hover{opacity:.85}
 .finish-msg{display:none;margin-top:16px;color:var(--ok);font-weight:600;font-size:15px}
 .finish-msg.show{display:block}
+
+/* ===================== HIGHLIGHT + NOTES SYSTEM ===================== */
+/* Selection toolbar */
+#sel-toolbar{
+  position:fixed;z-index:9999;
+  display:none;
+  background:#1e1f26;border:1px solid var(--line);
+  border-radius:10px;padding:6px 8px;gap:6px;
+  box-shadow:0 8px 32px rgba(0,0,0,.6);
+  align-items:center;
+}
+#sel-toolbar.visible{display:flex}
+.tb-btn{
+  display:flex;align-items:center;gap:5px;
+  padding:5px 11px;border-radius:7px;border:none;
+  font-size:13px;font-weight:600;cursor:pointer;transition:.15s;
+  white-space:nowrap;
+}
+.tb-btn:hover{filter:brightness(1.15)}
+.tb-btn.tb-hl{background:var(--hl);color:#111}
+.tb-btn.tb-note{background:var(--panel-2);color:var(--text);border:1px solid var(--line)}
+
+/* Highlight spans */
+.ddia-hl{
+  background:var(--hl-bg);
+  border-bottom:2px solid var(--hl);
+  border-radius:2px;
+  cursor:pointer;
+  position:relative;
+}
+.ddia-hl:hover{background:rgba(246,224,94,.32)}
+
+/* Note icon */
+.note-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:16px;height:16px;border-radius:50%;
+  background:var(--hl);color:#111;font-size:9px;font-weight:700;
+  cursor:pointer;vertical-align:middle;margin-left:2px;
+  position:relative;top:-1px;flex-shrink:0;
+  transition:.15s;
+  user-select:none;
+}
+.note-icon:hover{transform:scale(1.2)}
+
+/* Note popover */
+.note-popover{
+  position:fixed;z-index:9998;
+  background:#1e1f26;border:1px solid var(--hl);
+  border-radius:10px;padding:14px 16px;
+  max-width:300px;min-width:200px;
+  box-shadow:0 8px 32px rgba(0,0,0,.6);
+  display:none;
+}
+.note-popover.visible{display:block}
+.note-popover-text{font-size:14px;line-height:1.5;color:var(--text);margin-bottom:10px;white-space:pre-wrap}
+.note-popover-actions{display:flex;gap:8px}
+.note-popover-actions button{
+  padding:4px 10px;border-radius:6px;border:1px solid var(--line);
+  background:var(--panel-2);color:var(--muted);font-size:12px;cursor:pointer;
+}
+.note-popover-actions button:hover{border-color:var(--bad);color:var(--bad)}
+
+/* Note modal */
+#note-modal{
+  position:fixed;inset:0;z-index:10000;
+  background:rgba(0,0,0,.65);
+  display:none;align-items:center;justify-content:center;
+}
+#note-modal.visible{display:flex}
+.note-modal-box{
+  background:#1e1f26;border:1px solid var(--line);
+  border-radius:14px;padding:24px;width:420px;max-width:90vw;
+  box-shadow:0 16px 48px rgba(0,0,0,.7);
+}
+.note-modal-box h3{font-size:15px;font-weight:700;margin-bottom:6px;color:var(--text)}
+.note-modal-quote{
+  font-size:12px;color:var(--muted);background:var(--panel-2);
+  border-left:3px solid var(--hl);padding:8px 12px;border-radius:0 6px 6px 0;
+  margin-bottom:14px;line-height:1.4;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.note-modal-box textarea{
+  width:100%;height:90px;background:var(--panel-2);border:1px solid var(--line);
+  border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;
+  font-family:inherit;resize:vertical;outline:none;line-height:1.5;
+}
+.note-modal-box textarea:focus{border-color:var(--accent)}
+.note-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.note-modal-actions button{padding:8px 18px;border-radius:8px;border:none;font-size:14px;font-weight:600;cursor:pointer}
+.nm-cancel{background:var(--panel-2);color:var(--muted)}
+.nm-cancel:hover{color:var(--text)}
+.nm-save{background:var(--accent);color:#111}
+.nm-save:hover{opacity:.85}
+
+/* Notes panel toggle */
+#notes-fab{
+  position:fixed;bottom:28px;right:28px;z-index:9990;
+  width:44px;height:44px;border-radius:50%;
+  background:var(--panel);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:18px;box-shadow:0 4px 16px rgba(0,0,0,.4);
+  transition:.2s;
+}
+#notes-fab:hover{border-color:var(--hl);transform:scale(1.08)}
+#notes-fab .fab-count{
+  position:absolute;top:-4px;right:-4px;
+  background:var(--hl);color:#111;font-size:10px;font-weight:700;
+  width:18px;height:18px;border-radius:50%;
+  display:none;align-items:center;justify-content:center;
+}
+#notes-fab .fab-count.show{display:flex}
+
+/* Notes side panel */
+#notes-panel{
+  position:fixed;top:0;right:0;bottom:0;z-index:9991;
+  width:320px;background:#1a1b20;border-left:1px solid var(--line);
+  transform:translateX(100%);transition:transform .3s ease;
+  display:flex;flex-direction:column;
+}
+#notes-panel.open{transform:translateX(0)}
+.np-header{padding:20px 18px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.np-header h3{font-size:15px;font-weight:700}
+.np-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 4px;line-height:1}
+.np-close:hover{color:var(--text)}
+.np-list{flex:1;overflow-y:auto;padding:12px}
+.np-empty{color:var(--muted);font-size:13px;text-align:center;padding:40px 20px}
+.np-item{background:var(--panel);border-radius:10px;padding:12px 14px;margin-bottom:10px;border:1px solid var(--line)}
+.np-item-quote{font-size:11px;color:var(--muted);background:var(--panel-2);padding:6px 10px;border-radius:6px;border-left:2px solid var(--hl);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np-item-note{font-size:13px;color:var(--text);line-height:1.4;margin-bottom:8px;white-space:pre-wrap}
+.np-item-hl-only{font-size:12px;color:var(--hl);font-style:italic;margin-bottom:8px}
+.np-item-actions{display:flex;gap:6px}
+.np-item-actions button{font-size:11px;padding:3px 8px;border-radius:5px;border:1px solid var(--line);background:var(--panel-2);color:var(--muted);cursor:pointer}
+.np-item-actions button:hover{color:var(--bad);border-color:var(--bad)}
+/* ================================================================== */
 </style>
 </head>
 <body>
@@ -160,10 +295,8 @@ pre code{background:none;padding:0;font-size:13px}
           <path d="M0,0 L8,4 L0,8 Z" fill="#9a9fad"/>
         </marker>
       </defs>
-      <!-- App box -->
       <rect x="290" y="70" width="140" height="56" rx="10" fill="#25262d" stroke="#7aa2f7" stroke-width="1.5"/>
       <text x="360" y="101" text-anchor="middle" fill="#7aa2f7" font-size="13" font-weight="600">Application</text>
-      <!-- blocks -->
       <rect x="20" y="80" width="110" height="38" rx="8" fill="#2d2f37" stroke="#3a3d48"/>
       <text x="75" y="104" text-anchor="middle" fill="#e4e6eb" font-size="12">Database</text>
       <rect x="160" y="20" width="110" height="38" rx="8" fill="#2d2f37" stroke="#3a3d48"/>
@@ -174,7 +307,6 @@ pre code{background:none;padding:0;font-size:13px}
       <text x="515" y="44" text-anchor="middle" fill="#e4e6eb" font-size="12">Stream Processing</text>
       <rect x="450" y="142" width="130" height="38" rx="8" fill="#2d2f37" stroke="#3a3d48"/>
       <text x="515" y="166" text-anchor="middle" fill="#e4e6eb" font-size="12">Batch Processing</text>
-      <!-- arrows -->
       <line x1="290" y1="98" x2="270" y2="99" stroke="#9a9fad" stroke-width="1.2" marker-end="url(#arr)"/>
       <line x1="290" y1="88" x2="270" y2="40" stroke="#9a9fad" stroke-width="1.2" marker-end="url(#arr)"/>
       <line x1="290" y1="112" x2="270" y2="162" stroke="#9a9fad" stroke-width="1.2" marker-end="url(#arr)"/>
@@ -197,19 +329,16 @@ pre code{background:none;padding:0;font-size:13px}
 
   <div class="diagram">
     <svg width="680" height="160" viewBox="0 0 680 160">
-      <!-- Reliability -->
       <rect x="20" y="30" width="190" height="100" rx="12" fill="#25262d" stroke="#7aa2f7" stroke-width="1.5"/>
       <text x="115" y="62" text-anchor="middle" fill="#7aa2f7" font-weight="700" font-size="14">Reliability</text>
       <text x="115" y="82" text-anchor="middle" fill="#9a9fad" font-size="12">Funcionar correctamente</text>
       <text x="115" y="100" text-anchor="middle" fill="#9a9fad" font-size="12">incluso con fallas</text>
       <text x="115" y="120" text-anchor="middle" fill="#e4e6eb" font-size="11">fault-tolerant</text>
-      <!-- Scalability -->
       <rect x="245" y="30" width="190" height="100" rx="12" fill="#25262d" stroke="#7aa2f7" stroke-width="1.5"/>
       <text x="340" y="62" text-anchor="middle" fill="#7aa2f7" font-weight="700" font-size="14">Scalability</text>
       <text x="340" y="82" text-anchor="middle" fill="#9a9fad" font-size="12">Mantener performance</text>
       <text x="340" y="100" text-anchor="middle" fill="#9a9fad" font-size="12">cuando crece la carga</text>
       <text x="340" y="120" text-anchor="middle" fill="#e4e6eb" font-size="11">load parameters · percentiles</text>
-      <!-- Maintainability -->
       <rect x="470" y="30" width="190" height="100" rx="12" fill="#25262d" stroke="#7aa2f7" stroke-width="1.5"/>
       <text x="565" y="62" text-anchor="middle" fill="#7aa2f7" font-weight="700" font-size="14">Maintainability</text>
       <text x="565" y="82" text-anchor="middle" fill="#9a9fad" font-size="12">Operar y evolucionar</text>
@@ -237,7 +366,6 @@ pre code{background:none;padding:0;font-size:13px}
 
   <div class="diagram">
     <svg width="680" height="230" viewBox="0 0 680 230">
-      <!-- Hardware -->
       <rect x="20" y="20" width="195" height="190" rx="12" fill="#25262d" stroke="#3a3d48"/>
       <text x="117" y="46" text-anchor="middle" fill="#7aa2f7" font-weight="700" font-size="13">Hardware Faults</text>
       <text x="117" y="68" text-anchor="middle" fill="#9a9fad" font-size="12">Aleatorios, sin correlación</text>
@@ -248,7 +376,6 @@ pre code{background:none;padding:0;font-size:13px}
       <rect x="36" y="148" width="163" height="28" rx="6" fill="#2d2f37"/>
       <text x="118" y="167" text-anchor="middle" fill="#e4e6eb" font-size="11">Solución: redundancia (RAID)</text>
       <text x="117" y="200" text-anchor="middle" fill="#6fcf97" font-size="11">Multi-machine redundancy → nube</text>
-      <!-- Software -->
       <rect x="242" y="20" width="196" height="190" rx="12" fill="#25262d" stroke="#3a3d48"/>
       <text x="340" y="46" text-anchor="middle" fill="#f2827a" font-weight="700" font-size="13">Software Faults</text>
       <text x="340" y="68" text-anchor="middle" fill="#9a9fad" font-size="12">Sistemáticos y correlacionados</text>
@@ -259,7 +386,6 @@ pre code{background:none;padding:0;font-size:13px}
       <rect x="258" y="148" width="164" height="28" rx="6" fill="#2d2f37"/>
       <text x="340" y="167" text-anchor="middle" fill="#e4e6eb" font-size="11">Proceso consume todos los recursos</text>
       <text x="340" y="200" text-anchor="middle" fill="#f2827a" font-size="11">Sin solución garantizada</text>
-      <!-- Human -->
       <rect x="464" y="20" width="196" height="190" rx="12" fill="#25262d" stroke="#3a3d48"/>
       <text x="562" y="46" text-anchor="middle" fill="#e6c07b" font-weight="700" font-size="13">Human Errors</text>
       <text x="562" y="68" text-anchor="middle" fill="#9a9fad" font-size="12">Principal causa de outages</text>
@@ -308,10 +434,8 @@ pre code{background:none;padding:0;font-size:13px}
 
   <div class="diagram">
     <svg width="680" height="130" viewBox="0 0 680 130">
-      <!-- timeline rollout -->
       <text x="20" y="25" fill="#9a9fad" font-size="12" font-weight="600">Gradual rollout — reduciendo blast radius de errores humanos</text>
       <line x1="20" y1="70" x2="660" y2="70" stroke="#3a3d48" stroke-width="2"/>
-      <!-- stages -->
       <circle cx="80" cy="70" r="14" fill="#25262d" stroke="#7aa2f7" stroke-width="2"/>
       <text x="80" y="75" text-anchor="middle" fill="#7aa2f7" font-size="11">1%</text>
       <text x="80" y="100" text-anchor="middle" fill="#9a9fad" font-size="10">canary</text>
@@ -324,11 +448,9 @@ pre code{background:none;padding:0;font-size:13px}
       <circle cx="540" cy="70" r="14" fill="#25262d" stroke="#6fcf97" stroke-width="2"/>
       <text x="540" y="75" text-anchor="middle" fill="#6fcf97" font-size="11">100%</text>
       <text x="540" y="100" text-anchor="middle" fill="#9a9fad" font-size="10">full rollout</text>
-      <!-- arrows between -->
       <line x1="94" y1="70" x2="206" y2="70" stroke="#3a3d48" stroke-width="1.5" stroke-dasharray="4,3"/>
       <line x1="234" y1="70" x2="366" y2="70" stroke="#3a3d48" stroke-width="1.5" stroke-dasharray="4,3"/>
       <line x1="394" y1="70" x2="526" y2="70" stroke="#3a3d48" stroke-width="1.5" stroke-dasharray="4,3"/>
-      <!-- rollback -->
       <text x="620" y="75" text-anchor="middle" fill="#f2827a" font-size="11">rollback</text>
       <path d="M560,58 Q600,30 640,58" stroke="#f2827a" stroke-width="1.5" fill="none" stroke-dasharray="4,2"/>
       <text x="600" y="28" text-anchor="middle" fill="#f2827a" font-size="10">si falla</text>
@@ -362,7 +484,7 @@ pre code{background:none;padding:0;font-size:13px}
     </div>
     <div class="gterm">
       <dt>Chaos Engineering</dt>
-      <dd>Induir faults deliberados en producción para validar la resiliencia real del sistema. Netflix Simian Army.</dd>
+      <dd>Inducir faults deliberados en producción para validar la resiliencia real del sistema. Netflix Simian Army.</dd>
     </div>
     <div class="gterm">
       <dt>MTTF</dt>
@@ -382,18 +504,10 @@ pre code{background:none;padding:0;font-size:13px}
   <div class="question" id="q1">
     <div class="q-text"><span class="q-num">1.</span> ¿Cuál es la diferencia fundamental entre un <em>fault</em> y un <em>failure</em>?</div>
     <div class="options">
-      <div class="opt" id="q1-a">
-        <input type="radio" name="q1" value="a"><label>Un fault es siempre más grave que un failure</label>
-      </div>
-      <div class="opt" id="q1-b">
-        <input type="radio" name="q1" value="b"><label>Un fault es la desviación de un componente individual; un failure es cuando el sistema entero deja de funcionar para el usuario</label>
-      </div>
-      <div class="opt" id="q1-c">
-        <input type="radio" name="q1" value="c"><label>Son sinónimos; el libro los usa indistintamente</label>
-      </div>
-      <div class="opt" id="q1-d">
-        <input type="radio" name="q1" value="d"><label>Un failure solo aplica a hardware; un fault aplica a software</label>
-      </div>
+      <div class="opt" id="q1-a"><input type="radio" name="q1" value="a"><label>Un fault es siempre más grave que un failure</label></div>
+      <div class="opt" id="q1-b"><input type="radio" name="q1" value="b"><label>Un fault es la desviación de un componente individual; un failure es cuando el sistema entero deja de funcionar para el usuario</label></div>
+      <div class="opt" id="q1-c"><input type="radio" name="q1" value="c"><label>Son sinónimos; el libro los usa indistintamente</label></div>
+      <div class="opt" id="q1-d"><input type="radio" name="q1" value="d"><label>Un failure solo aplica a hardware; un fault aplica a software</label></div>
     </div>
     <button class="check-btn" onclick="check('q1','b')">Verificar</button>
     <div class="feedback" id="q1-fb-b">✅ Correcto. Esa es la distinción central: fault es en un componente, failure es en el sistema. El objetivo es tolerar faults para evitar failures.</div>
@@ -411,10 +525,10 @@ pre code{background:none;padding:0;font-size:13px}
       <div class="opt" id="q2-d"><input type="radio" name="q2" value="d"><label>Porque el software no tiene redundancia disponible</label></div>
     </div>
     <button class="check-btn" onclick="check('q2','b')">Verificar</button>
-    <div class="feedback" id="q2-fb-b">✅ Exacto. Un bug sistemático puede hacer crash a todos los nodos al mismo tiempo, cosa que un disco duro que falla no puede hacer (es aleatorio, no correlacionado).</div>
+    <div class="feedback" id="q2-fb-b">✅ Exacto. Un bug sistemático puede hacer crash a todos los nodos al mismo tiempo, cosa que un disco duro que falla no puede hacer.</div>
     <div class="feedback" id="q2-fb-a">❌ El costo no es el argumento central. La clave está en la correlación.</div>
-    <div class="feedback" id="q2-fb-c">❌ Al contrario, los hardware faults a menudo generan alertas claras. Los bugs de software pueden dormitar años antes de manifestarse.</div>
-    <div class="feedback" id="q2-fb-d">❌ El software sí puede tener redundancia (múltiples instancias), pero si todas corren el mismo código buggeado, la redundancia no ayuda.</div>
+    <div class="feedback" id="q2-fb-c">❌ Al contrario, los hardware faults a menudo generan alertas claras. Los bugs de software pueden dormitar años.</div>
+    <div class="feedback" id="q2-fb-d">❌ El software sí puede tener redundancia, pero si todas las instancias corren el mismo código buggeado, no ayuda.</div>
   </div>
 
   <div class="question" id="q3">
@@ -426,29 +540,29 @@ pre code{background:none;padding:0;font-size:13px}
       <div class="opt" id="q3-d"><input type="radio" name="q3" value="d"><label>Bugs en el código de aplicación</label></div>
     </div>
     <button class="check-btn" onclick="check('q3','c')">Verificar</button>
-    <div class="feedback" id="q3-fb-c">✅ Correcto. Los errores humanos de configuración son la principal causa. El hardware solo representó el 10-25% de los outages estudiados.</div>
-    <div class="feedback" id="q3-fb-a">❌ Hardware estuvo en solo el 10-25% de los casos. La mayoría fue por errores humanos.</div>
-    <div class="feedback" id="q3-fb-b">❌ Los DDoS no son mencionados como causa principal. Los errores humanos de configuración lo son.</div>
-    <div class="feedback" id="q3-fb-d">❌ Los bugs de código contribuyen, pero la causa más documentada son los errores de configuración del operador.</div>
+    <div class="feedback" id="q3-fb-c">✅ Correcto. Los errores humanos de configuración son la principal causa. El hardware solo representó el 10-25%.</div>
+    <div class="feedback" id="q3-fb-a">❌ Hardware estuvo en solo el 10-25% de los casos.</div>
+    <div class="feedback" id="q3-fb-b">❌ Los DDoS no son mencionados como causa principal.</div>
+    <div class="feedback" id="q3-fb-d">❌ Los bugs contribuyen, pero la causa más documentada son los errores de configuración del operador.</div>
   </div>
 
   <div class="question" id="q4">
     <div class="q-text"><span class="q-num">4.</span> ¿Qué es Chaos Engineering (ej: Netflix Simian Army) y cuál es su justificación?</div>
     <div class="options">
-      <div class="opt" id="q4-a"><input type="radio" name="q4" value="a"><label>Una técnica para hacer pruebas de carga, midiendo performance bajo alta concurrencia</label></div>
-      <div class="opt" id="q4-b"><input type="radio" name="q4" value="b"><label>Inducir faults deliberados en producción para verificar que el sistema es genuinamente resiliente y no solo en teoría</label></div>
+      <div class="opt" id="q4-a"><input type="radio" name="q4" value="a"><label>Una técnica para hacer pruebas de carga bajo alta concurrencia</label></div>
+      <div class="opt" id="q4-b"><input type="radio" name="q4" value="b"><label>Inducir faults deliberados en producción para verificar que el sistema es genuinamente resiliente</label></div>
       <div class="opt" id="q4-c"><input type="radio" name="q4" value="c"><label>Un framework de testing unitario para microservicios</label></div>
       <div class="opt" id="q4-d"><input type="radio" name="q4" value="d"><label>Un proceso para aleatoriamente apagar servidores en staging</label></div>
     </div>
     <button class="check-btn" onclick="check('q4','b')">Verificar</button>
-    <div class="feedback" id="q4-fb-b">✅ Exacto. La idea es que si entrenas al sistema constantemente para sobrevivir faults reales en producción, descubres y reparas puntos débiles antes de que causen failures inesperados.</div>
+    <div class="feedback" id="q4-fb-b">✅ Exacto. Si entrenas al sistema constantemente para sobrevivir faults reales en producción, descubres puntos débiles antes de que causen failures inesperados.</div>
     <div class="feedback" id="q4-fb-a">❌ Las pruebas de carga son load testing. Chaos Engineering es sobre faults, no sobre load.</div>
-    <div class="feedback" id="q4-fb-c">❌ No es un framework de testing unitario. Opera en producción real, no en tests.</div>
+    <div class="feedback" id="q4-fb-c">❌ No es un framework de testing unitario. Opera en producción real.</div>
     <div class="feedback" id="q4-fb-d">❌ Staging no es el punto clave; es hacerlo en producción lo que valida resiliencia real.</div>
   </div>
 
   <div class="question" id="q5">
-    <div class="q-text"><span class="q-num">5.</span> ¿Cuál de estas NO es una estrategia recomendada para reducir los errores humanos en sistemas de datos?</div>
+    <div class="q-text"><span class="q-num">5.</span> ¿Cuál de estas NO es una estrategia recomendada para reducir los errores humanos?</div>
     <div class="options">
       <div class="opt" id="q5-a"><input type="radio" name="q5" value="a"><label>Diseñar APIs y abstracciones que hagan lo correcto fácil y lo incorrecto difícil</label></div>
       <div class="opt" id="q5-b"><input type="radio" name="q5" value="b"><label>Dar a los operadores acceso directo a producción sin intermediarios para que actúen rápido</label></div>
@@ -456,10 +570,10 @@ pre code{background:none;padding:0;font-size:13px}
       <div class="opt" id="q5-d"><input type="radio" name="q5" value="d"><label>Hacer gradual rollout para limitar el impacto de bugs en producción</label></div>
     </div>
     <button class="check-btn" onclick="check('q5','b')">Verificar</button>
-    <div class="feedback" id="q5-fb-b">✅ Correcto — esa NO es la recomendación. Lo contrario: hay que separar los lugares donde se cometen errores de los lugares que pueden causar failures. El acceso directo sin controles amplifica el impacto humano.</div>
-    <div class="feedback" id="q5-fb-a">❌ Esa sí es una estrategia recomendada. Las buenas abstracciones reducen oportunidades de error.</div>
+    <div class="feedback" id="q5-fb-b">✅ Correcto — esa NO es la recomendación. Hay que separar los lugares donde se cometen errores de los lugares que pueden causar failures.</div>
+    <div class="feedback" id="q5-fb-a">❌ Esa sí es recomendada. Las buenas abstracciones reducen oportunidades de error.</div>
     <div class="feedback" id="q5-fb-c">❌ Esa sí es recomendada. Los sandboxes permiten experimentar sin afectar usuarios reales.</div>
-    <div class="feedback" id="q5-fb-d">❌ Esa sí es recomendada. El gradual rollout (canary, % de usuarios) limita el blast radius.</div>
+    <div class="feedback" id="q5-fb-d">❌ Esa sí es recomendada. El gradual rollout limita el blast radius.</div>
   </div>
 
   <div class="score-box" id="score-box">
@@ -473,88 +587,444 @@ pre code{background:none;padding:0;font-size:13px}
 
 </div><!-- /shell -->
 
+<!-- ====== HIGHLIGHT + NOTES UI ====== -->
+<!-- Selection toolbar -->
+<div id="sel-toolbar">
+  <button class="tb-btn tb-hl" onclick="applyHighlight()">🖊 Destacar</button>
+  <button class="tb-btn tb-note" onclick="openNoteModal()">✏️ Añadir nota</button>
+</div>
+
+<!-- Note input modal -->
+<div id="note-modal">
+  <div class="note-modal-box">
+    <h3>Añadir nota</h3>
+    <div class="note-modal-quote" id="nm-quote"></div>
+    <textarea id="nm-textarea" placeholder="Escribe tu nota aquí…"></textarea>
+    <div class="note-modal-actions">
+      <button class="nm-cancel" onclick="closeNoteModal()">Cancelar</button>
+      <button class="nm-save" onclick="saveNote()">Guardar nota</button>
+    </div>
+  </div>
+</div>
+
+<!-- Note popover -->
+<div class="note-popover" id="note-popover">
+  <div class="note-popover-text" id="np-text"></div>
+  <div class="note-popover-actions">
+    <button onclick="editNoteFromPopover()">✏️ Editar</button>
+    <button onclick="deleteFromPopover()">🗑 Eliminar</button>
+  </div>
+</div>
+
+<!-- FAB: open notes panel -->
+<div id="notes-fab" onclick="toggleNotesPanel()" title="Ver mis notas">
+  💬
+  <div class="fab-count" id="fab-count">0</div>
+</div>
+
+<!-- Notes side panel -->
+<div id="notes-panel">
+  <div class="np-header">
+    <h3>Mis notas — 1.1</h3>
+    <button class="np-close" onclick="toggleNotesPanel()">×</button>
+  </div>
+  <div class="np-list" id="np-list"></div>
+</div>
+
 <script>
+/* ===== PROGRESS ===== */
 const PART_ID = "1.1";
 const STORAGE_KEY = "ddia-lectura-progreso";
-const PARTS = [
-  "1.1","1.2",
-  "2.1","2.2",
-  "3.1","3.2",
-  "4.1","4.2",
-  "5.1","5.2",
-  "6.1","6.2",
-  "7.1","7.2",
-  "8.1","8.2",
-  "9.1","9.2",
-  "10.1","10.2",
-  "11.1","11.2",
-  "12.1","12.2"
-];
+const PARTS = ["1.1","1.2","2.1","2.2","3.1","3.2","4.1","4.2","5.1","5.2","6.1","6.2","7.1","7.2","8.1","8.2","9.1","9.2","10.1","10.2","11.1","11.2","12.1","12.2"];
 
 function getCompleted(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||[];}catch(e){return[];}}
 function saveCompleted(list){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(list));}catch(e){}}
 
 function initProgress(){
-  const done = getCompleted();
-  const idx = PARTS.indexOf(PART_ID);
-  const tl = document.getElementById('timeline');
-  PARTS.forEach((p,i)=>{
-    const d = document.createElement('div');
-    d.className = 'tl-dot' + (done.includes(p) ? ' done' : (p === PART_ID ? ' current' : ''));
-    d.title = 'Parte ' + p;
-    d.textContent = p;
+  const done=getCompleted();
+  const tl=document.getElementById('timeline');
+  tl.innerHTML='';
+  PARTS.forEach(p=>{
+    const d=document.createElement('div');
+    d.className='tl-dot'+(done.includes(p)?' done':(p===PART_ID?' current':''));
+    d.title='Parte '+p; d.textContent=p;
     tl.appendChild(d);
   });
-  const pct = Math.round((done.length / PARTS.length)*100);
-  document.getElementById('prog-fill').style.width = pct+'%';
-  document.getElementById('prog-pct').textContent = pct+'%';
-  document.getElementById('prog-text').textContent = done.length + ' de ' + PARTS.length + ' partes completadas';
+  const pct=Math.round((done.length/PARTS.length)*100);
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-pct').textContent=pct+'%';
+  document.getElementById('prog-text').textContent=done.length+' de '+PARTS.length+' partes completadas';
 }
 
 function jump(id){document.getElementById(id).scrollIntoView({behavior:'smooth'})}
 
-const answers = {};
-let checked = {};
-
-function check(qid, correct){
-  const sel = document.querySelector(`input[name="${qid}"]:checked`);
+const answers={};let checked={};
+function check(qid,correct){
+  const sel=document.querySelector(`input[name="${qid}"]:checked`);
   if(!sel){alert('Selecciona una opción primero');return;}
-  if(checked[qid]) return;
-  checked[qid] = true;
-  const val = sel.value;
-  answers[qid] = val === correct;
-  const opts = document.querySelectorAll(`#${qid} .opt`);
-  opts.forEach(o=>{
-    const v = o.querySelector('input').value;
-    if(v === correct) o.classList.add('correct');
-    else if(v === val && val !== correct) o.classList.add('wrong');
+  if(checked[qid])return;
+  checked[qid]=true;
+  const val=sel.value;
+  answers[qid]=val===correct;
+  document.querySelectorAll(`#${qid} .opt`).forEach(o=>{
+    const v=o.querySelector('input').value;
+    if(v===correct)o.classList.add('correct');
+    else if(v===val&&val!==correct)o.classList.add('wrong');
     else o.classList.add('neutral');
   });
-  const fb = document.getElementById(`${qid}-fb-${val}`);
-  if(fb){fb.classList.add('show'); fb.classList.add(val===correct?'ok':'bad');}
-  document.querySelector(`#${qid} .check-btn`).disabled = true;
-
-  if(Object.keys(checked).length === 5){
-    const score = Object.values(answers).filter(Boolean).length;
-    const sb = document.getElementById('score-box');
-    sb.classList.add('show');
-    document.getElementById('score-num').textContent = score + '/5';
-    const msgs = ['Repasa el material e intenta de nuevo 💪','Buen intento, revisa las respuestas incorrectas','Bien! Repasa los conceptos que fallaste','Muy bien! Casi perfecto 🌟','¡Perfecto! Dominas este material 🚀'];
-    document.getElementById('score-msg').textContent = msgs[score];
-    if(score >= 3) document.getElementById('finish-btn').style.display='inline-block';
+  const fb=document.getElementById(`${qid}-fb-${val}`);
+  if(fb){fb.classList.add('show');fb.classList.add(val===correct?'ok':'bad');}
+  document.querySelector(`#${qid} .check-btn`).disabled=true;
+  if(Object.keys(checked).length===5){
+    const score=Object.values(answers).filter(Boolean).length;
+    const sb=document.getElementById('score-box');sb.classList.add('show');
+    document.getElementById('score-num').textContent=score+'/5';
+    const msgs=['Repasa el material e intenta de nuevo 💪','Buen intento, revisa las respuestas incorrectas','Bien! Repasa los conceptos que fallaste','Muy bien! Casi perfecto 🌟','¡Perfecto! Dominas este material 🚀'];
+    document.getElementById('score-msg').textContent=msgs[score];
+    if(score>=3)document.getElementById('finish-btn').style.display='inline-block';
   }
 }
 
 function markDone(){
-  const done = getCompleted();
-  if(!done.includes(PART_ID)) done.push(PART_ID);
+  const done=getCompleted();
+  if(!done.includes(PART_ID))done.push(PART_ID);
   saveCompleted(done);
   document.getElementById('finish-btn').style.display='none';
   document.getElementById('finish-msg').classList.add('show');
   initProgress();
 }
 
+/* ===== HIGHLIGHT + NOTES SYSTEM ===== */
+const NOTES_KEY = 'ddia-notes-'+PART_ID;
+
+function getNotes(){try{return JSON.parse(localStorage.getItem(NOTES_KEY))||[];}catch(e){return[];}}
+function saveNotes(arr){try{localStorage.setItem(NOTES_KEY,JSON.stringify(arr));}catch(e){}}
+
+// State
+let currentRange = null;
+let currentSelText = '';
+let activePopoverNoteId = null;
+
+/* --- Selection toolbar --- */
+document.addEventListener('mouseup', e => {
+  // Don't trigger inside toolbar, modal or panel
+  if(e.target.closest('#sel-toolbar,#note-modal,#notes-panel,#notes-fab')) return;
+  setTimeout(()=>{
+    const sel = window.getSelection();
+    if(!sel || sel.isCollapsed || sel.toString().trim().length < 2){
+      hideToolbar(); return;
+    }
+    const range = sel.getRangeAt(0);
+    // Only allow inside .section (not quiz, not diagrams)
+    if(!range.commonAncestorContainer.closest?.('.section') &&
+       range.commonAncestorContainer.parentElement?.closest?.('.section') === null){
+      // Allow it anyway if ancestor is a section
+    }
+    currentRange = range.cloneRange();
+    currentSelText = sel.toString().trim();
+    showToolbar(range);
+  }, 10);
+});
+
+document.addEventListener('mousedown', e => {
+  if(!e.target.closest('#sel-toolbar')) hideToolbar();
+  if(!e.target.closest('#note-popover,.note-icon')) hidePopover();
+});
+
+function showToolbar(range){
+  const tb = document.getElementById('sel-toolbar');
+  const rect = range.getBoundingClientRect();
+  tb.style.top = (window.scrollY + rect.top - 52) + 'px';
+  tb.style.left = (window.scrollX + rect.left + rect.width/2 - 80) + 'px';
+  tb.classList.add('visible');
+}
+function hideToolbar(){
+  document.getElementById('sel-toolbar').classList.remove('visible');
+}
+
+/* --- Apply highlight --- */
+function applyHighlight(){
+  if(!currentRange) return;
+  const id = 'hl-'+Date.now();
+  wrapRange(currentRange, id, null);
+  // Save: highlight only (no note yet)
+  const notes = getNotes();
+  // Check if already highlighted (same text, nearby)
+  notes.push({id, text: currentSelText, note: null, ts: Date.now()});
+  saveNotes(notes);
+  hideToolbar();
+  window.getSelection().removeAllRanges();
+  updateFAB();
+}
+
+/* --- Open note modal --- */
+function openNoteModal(){
+  if(!currentRange) return;
+  hideToolbar();
+  document.getElementById('nm-quote').textContent = currentSelText.length > 80
+    ? currentSelText.slice(0,80)+'…' : currentSelText;
+  document.getElementById('nm-textarea').value = '';
+  document.getElementById('note-modal').classList.add('visible');
+  setTimeout(()=>document.getElementById('nm-textarea').focus(), 100);
+}
+function closeNoteModal(){
+  document.getElementById('note-modal').classList.remove('visible');
+  currentRange = null; currentSelText = '';
+}
+function saveNote(){
+  const noteText = document.getElementById('nm-textarea').value.trim();
+  if(!noteText){closeNoteModal();return;}
+  if(!currentRange){closeNoteModal();return;}
+  const id = 'hl-'+Date.now();
+  wrapRange(currentRange, id, noteText);
+  const notes = getNotes();
+  notes.push({id, text: currentSelText, note: noteText, ts: Date.now()});
+  saveNotes(notes);
+  closeNoteModal();
+  window.getSelection().removeAllRanges();
+  updateFAB();
+  renderNotePanel();
+}
+
+/* --- Wrap a range in a highlight span --- */
+function wrapRange(range, id, noteText){
+  try {
+    const span = document.createElement('span');
+    span.className = 'ddia-hl';
+    span.dataset.hlId = id;
+    range.surroundContents(span);
+    if(noteText){
+      const icon = document.createElement('span');
+      icon.className = 'note-icon';
+      icon.textContent = '✎';
+      icon.title = noteText;
+      icon.dataset.hlId = id;
+      icon.addEventListener('click', e=>{e.stopPropagation(); showNotePopover(id, e);});
+      span.appendChild(icon);
+    }
+    span.addEventListener('click', e=>{
+      if(e.target.classList.contains('note-icon')) return;
+      // clicking the highlight itself: show popover if it has a note
+      const notes = getNotes();
+      const n = notes.find(x=>x.id===id);
+      if(n && n.note) showNotePopover(id, e);
+    });
+  } catch(err){
+    // surroundContents fails if selection crosses element boundaries — try extractContents
+    try {
+      const frag = range.extractContents();
+      const span = document.createElement('span');
+      span.className = 'ddia-hl';
+      span.dataset.hlId = id;
+      span.appendChild(frag);
+      range.insertNode(span);
+      if(noteText){
+        const icon = document.createElement('span');
+        icon.className = 'note-icon';
+        icon.textContent = '✎';
+        icon.title = noteText;
+        icon.dataset.hlId = id;
+        icon.addEventListener('click', e=>{e.stopPropagation(); showNotePopover(id, e);});
+        span.appendChild(icon);
+      }
+    } catch(e2){ console.warn('Could not highlight:', e2); }
+  }
+}
+
+/* --- Note popover --- */
+function showNotePopover(id, e){
+  const notes = getNotes();
+  const n = notes.find(x=>x.id===id);
+  if(!n || !n.note) return;
+  activePopoverNoteId = id;
+  const pop = document.getElementById('note-popover');
+  document.getElementById('np-text').textContent = n.note;
+  const x = Math.min(e.clientX + window.scrollX, window.innerWidth - 320);
+  const y = e.clientY + window.scrollY + 16;
+  pop.style.left = x+'px';
+  pop.style.top = y+'px';
+  pop.classList.add('visible');
+}
+function hidePopover(){
+  document.getElementById('note-popover').classList.remove('visible');
+  activePopoverNoteId = null;
+}
+function editNoteFromPopover(){
+  if(!activePopoverNoteId) return;
+  const notes = getNotes();
+  const n = notes.find(x=>x.id===activePopoverNoteId);
+  if(!n) return;
+  hidePopover();
+  const newNote = prompt('Editar nota:', n.note);
+  if(newNote === null) return;
+  n.note = newNote.trim();
+  saveNotes(notes);
+  // Update icon title
+  const icon = document.querySelector(`.note-icon[data-hl-id="${n.id}"]`);
+  if(icon) icon.title = n.note;
+  renderNotePanel();
+}
+function deleteFromPopover(){
+  if(!activePopoverNoteId) return;
+  removeHighlight(activePopoverNoteId);
+  hidePopover();
+}
+
+/* --- Remove highlight --- */
+function removeHighlight(id){
+  const span = document.querySelector(`.ddia-hl[data-hl-id="${id}"]`);
+  if(span){
+    const parent = span.parentNode;
+    // Remove note icon if present
+    const icon = span.querySelector('.note-icon');
+    if(icon) span.removeChild(icon);
+    while(span.firstChild) parent.insertBefore(span.firstChild, span);
+    parent.removeChild(span);
+    parent.normalize();
+  }
+  const notes = getNotes().filter(x=>x.id!==id);
+  saveNotes(notes);
+  updateFAB();
+  renderNotePanel();
+}
+
+/* --- Notes panel --- */
+function toggleNotesPanel(){
+  document.getElementById('notes-panel').classList.toggle('open');
+  renderNotePanel();
+}
+function renderNotePanel(){
+  const notes = getNotes();
+  const list = document.getElementById('np-list');
+  if(!notes.length){
+    list.innerHTML='<div class="np-empty">Aún no tienes notas ni destacados en esta parte.</div>';
+    return;
+  }
+  list.innerHTML = notes.slice().reverse().map(n=>`
+    <div class="np-item" data-id="${n.id}">
+      <div class="np-item-quote">${escHtml(n.text)}</div>
+      ${n.note
+        ? `<div class="np-item-note">${escHtml(n.note)}</div>`
+        : `<div class="np-item-hl-only">Solo destacado</div>`}
+      <div class="np-item-actions">
+        ${n.note ? `<button onclick="editNoteInPanel('${n.id}')">✏️ Editar</button>` : `<button onclick="addNoteInPanel('${n.id}')">✏️ Añadir nota</button>`}
+        <button onclick="removeHighlight('${n.id}')">🗑 Eliminar</button>
+      </div>
+    </div>
+  `).join('');
+}
+function escHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function editNoteInPanel(id){
+  const notes = getNotes();
+  const n = notes.find(x=>x.id===id);
+  if(!n) return;
+  const newNote = prompt('Editar nota:', n.note||'');
+  if(newNote===null) return;
+  n.note = newNote.trim();
+  saveNotes(notes);
+  const icon = document.querySelector(`.note-icon[data-hl-id="${id}"]`);
+  if(icon) icon.title = n.note;
+  renderNotePanel();
+}
+function addNoteInPanel(id){
+  const notes = getNotes();
+  const n = notes.find(x=>x.id===id);
+  if(!n) return;
+  const newNote = prompt('Añadir nota al destacado:', '');
+  if(!newNote || !newNote.trim()) return;
+  n.note = newNote.trim();
+  saveNotes(notes);
+  // Add icon to existing span
+  const span = document.querySelector(`.ddia-hl[data-hl-id="${id}"]`);
+  if(span && !span.querySelector('.note-icon')){
+    const icon = document.createElement('span');
+    icon.className = 'note-icon'; icon.textContent = '✎';
+    icon.title = n.note; icon.dataset.hlId = id;
+    icon.addEventListener('click', e=>{e.stopPropagation(); showNotePopover(id, e);});
+    span.appendChild(icon);
+  }
+  renderNotePanel();
+  updateFAB();
+}
+
+function updateFAB(){
+  const notes = getNotes();
+  const cnt = document.getElementById('fab-count');
+  cnt.textContent = notes.length;
+  cnt.classList.toggle('show', notes.length > 0);
+}
+
+/* --- Restore highlights on load --- */
+function restoreHighlights(){
+  // We can't perfectly restore DOM ranges from saved text after reload
+  // because positions may shift. Instead we mark the page text with
+  // a text-search approach.
+  const notes = getNotes();
+  notes.forEach(n => {
+    if(!n.text) return;
+    highlightTextInPage(n.text, n.id, n.note);
+  });
+  updateFAB();
+  renderNotePanel();
+}
+
+function highlightTextInPage(searchText, id, noteText){
+  // Search in .section elements only (not quiz)
+  const sections = document.querySelectorAll('.section');
+  let found = false;
+  sections.forEach(sec => {
+    if(found) return;
+    found = highlightInNode(sec, searchText, id, noteText);
+  });
+}
+
+function highlightInNode(root, text, id, noteText){
+  // Walk text nodes, find first match, wrap it
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => {
+      if(n.parentElement.classList.contains('ddia-hl')) return NodeFilter.FILTER_REJECT;
+      if(n.parentElement.classList.contains('note-icon')) return NodeFilter.FILTER_REJECT;
+      if(n.parentElement.closest('.diagram,.quiz-wrap')) return NodeFilter.FILTER_REJECT;
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  });
+
+  // Build full text + node map
+  let nodes=[], fullText='', offsets=[];
+  let node;
+  while((node=walker.nextNode())){
+    offsets.push(fullText.length);
+    nodes.push(node);
+    fullText += node.textContent;
+  }
+
+  const idx = fullText.indexOf(text);
+  if(idx < 0) return false;
+
+  // Find which nodes span [idx, idx+text.length]
+  const end = idx + text.length;
+  const range = document.createRange();
+  let startNode=null, startOff=0, endNode=null, endOff=0;
+  for(let i=0;i<nodes.length;i++){
+    const s=offsets[i], e=s+nodes[i].textContent.length;
+    if(startNode===null && s<=idx && idx<e){ startNode=nodes[i]; startOff=idx-s; }
+    if(startNode!==null && s<end && end<=e){ endNode=nodes[i]; endOff=end-s; break; }
+    if(startNode!==null && e<=end && i===nodes.length-1){ endNode=nodes[i]; endOff=nodes[i].textContent.length; }
+  }
+  if(!startNode||!endNode) return false;
+  try {
+    range.setStart(startNode, startOff);
+    range.setEnd(endNode, endOff);
+    wrapRange(range, id, noteText);
+    return true;
+  } catch(e){ return false; }
+}
+
+/* Init */
 initProgress();
+restoreHighlights();
 </script>
 </body>
 </html>
