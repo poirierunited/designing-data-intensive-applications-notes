@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DDIA 2.2 — Grafos y Datalog</title>
+<style>
+:root {
+  --bg:#1c1d22; --panel:#25262d; --panel-2:#2d2f37; --text:#e4e6eb;
+  --muted:#9a9fad; --accent:#7aa2f7; --ok:#6fcf97; --bad:#f2827a;
+  --warn:#e6c07b; --line:#3a3d48; --radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Georgia',serif;font-size:17px;line-height:1.75}
+.wrap{max-width:820px;margin:0 auto;padding:32px 24px 80px}
+.hdr{display:flex;align-items:center;gap:16px;padding-bottom:24px;border-bottom:1px solid var(--line);margin-bottom:28px}
+.hdr-badge{background:var(--accent);color:#0d1117;font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;letter-spacing:.05em;font-family:monospace}
+.hdr-title{font-size:22px;font-weight:700}
+.hdr-sub{font-size:13px;color:var(--muted);margin-top:2px}
+.prog-wrap{margin-bottom:32px}
+.prog-label{font-size:12px;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between}
+.prog-track{height:6px;background:var(--panel-2);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .4s}
+.timeline-scroll{overflow-x:auto;padding-bottom:12px;margin-bottom:36px}
+.timeline{display:flex;gap:0;min-width:max-content;align-items:center}
+.tl-node{display:flex;flex-direction:column;align-items:center}
+.tl-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);background:var(--panel);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--muted);flex-shrink:0}
+.tl-dot.done{background:var(--ok);border-color:var(--ok);color:#0d1117}
+.tl-dot.current{background:var(--accent);border-color:var(--accent);color:#0d1117;box-shadow:0 0 0 3px rgba(122,162,247,.3)}
+.tl-label{font-size:8px;color:var(--muted);margin-top:5px;text-align:center;max-width:52px;line-height:1.2}
+.tl-label.current{color:var(--accent);font-weight:600}
+.tl-line{width:18px;height:2px;background:var(--line);flex-shrink:0;margin-bottom:22px}
+.tl-line.done{background:var(--ok)}
+.section{background:var(--panel);border-radius:var(--radius);padding:28px 32px;margin-bottom:24px;border:1px solid var(--line)}
+.section h2{font-size:18px;color:var(--accent);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.section h3{font-size:15px;color:var(--warn);margin:20px 0 10px}
+.section p{margin-bottom:14px}
+.section ul{padding-left:20px;margin-bottom:14px}
+.section ul li{margin-bottom:8px}
+.recap{background:var(--panel-2);border-left:3px solid var(--warn);border-radius:0 var(--radius) var(--radius) 0;padding:18px 22px;margin-bottom:24px}
+.recap-title{font-size:11px;font-weight:700;color:var(--warn);letter-spacing:.08em;margin-bottom:10px;text-transform:uppercase}
+.callout{background:var(--panel-2);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:14px 18px;margin:18px 0;font-size:15px}
+.callout.warn{border-color:var(--warn)}
+.callout.ok{border-color:var(--ok)}
+.diagram{background:#16171c;border:1px solid var(--line);border-radius:10px;padding:20px;margin:20px 0;overflow-x:auto;text-align:center}
+code{background:var(--panel-2);padding:2px 7px;border-radius:4px;font-size:14px;font-family:monospace;color:var(--warn)}
+pre{background:var(--panel-2);border-radius:8px;padding:14px 16px;margin:14px 0;overflow-x:auto;font-size:13px;font-family:monospace;color:var(--warn);line-height:1.6}
+pre .c{color:#5c6370;font-style:italic}
+pre .kw{color:#7aa2f7}
+pre .s{color:#6fcf97}
+pre .n{color:#e6c07b}
+.glossary-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+@media(max-width:600px){.glossary-grid{grid-template-columns:1fr}}
+.gterm{background:var(--panel-2);border-radius:8px;padding:12px 14px;border:1px solid var(--line)}
+.gterm-name{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:4px}
+.gterm-def{font-size:13px;color:var(--muted);line-height:1.4}
+.quiz-section{background:var(--panel);border-radius:var(--radius);padding:28px 32px;margin-bottom:24px;border:1px solid var(--line)}
+.quiz-section h2{font-size:18px;color:var(--accent);margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.q-block{margin-bottom:28px;padding-bottom:28px;border-bottom:1px solid var(--line)}
+.q-block:last-of-type{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.q-num{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;margin-bottom:8px;text-transform:uppercase}
+.q-text{font-size:16px;margin-bottom:14px;line-height:1.6}
+.opt{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:8px;border:1px solid var(--line);margin-bottom:8px;cursor:pointer;transition:all .15s;font-size:14px;background:var(--panel-2)}
+.opt:hover{border-color:var(--accent);background:#2a2f45}
+.opt.correct{border-color:var(--ok);background:#1a2e22}
+.opt.wrong{border-color:var(--bad);background:#2e1a1a}
+.opt.disabled{cursor:default;pointer-events:none}
+.opt-letter{font-weight:700;color:var(--muted);flex-shrink:0;margin-top:1px;width:16px}
+.opt-body{flex:1}
+.opt-why{margin-top:6px;font-size:13px;color:var(--muted);font-style:italic;display:none}
+.opt.correct .opt-letter{color:var(--ok)}
+.opt.wrong .opt-letter{color:var(--bad)}
+.q-explain{display:none;margin-top:10px;padding:12px 16px;background:var(--panel-2);border-radius:8px;border-left:3px solid var(--ok);font-size:14px}
+.score-banner{display:none;text-align:center;padding:20px;background:var(--panel-2);border-radius:10px;margin-top:20px}
+.score-big{font-size:36px;font-weight:700;color:var(--ok)}
+.btn-complete{display:block;width:100%;padding:16px;border-radius:var(--radius);border:none;cursor:pointer;font-size:16px;font-weight:700;font-family:'Georgia',serif;transition:all .2s;margin-top:8px}
+.btn-complete.pending{background:var(--accent);color:#0d1117}
+.btn-complete.pending:hover{opacity:.9}
+.btn-complete.done{background:var(--ok);color:#0d1117}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hdr">
+  <div><div class="hdr-badge">PARTE 2.2</div></div>
+  <div>
+    <div class="hdr-title">Modelos de Grafo y Datalog</div>
+    <div class="hdr-sub">Capítulo 2 · Modelos de Datos y Lenguajes de Query · ~18 min</div>
+  </div>
+</div>
+
+<div class="prog-wrap">
+  <div class="prog-label"><span id="prog-text">Cargando…</span><span id="prog-frac"></span></div>
+  <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+</div>
+
+<div class="timeline-scroll"><div class="timeline" id="timeline"></div></div>
+
+<div class="recap">
+  <div class="recap-title">📖 Recap — Parte 2.1</div>
+  <p style="font-size:14px;color:var(--text);margin:0">Cubrimos el modelo relacional (Codd 1970), el boom NoSQL (2009), el impedance mismatch entre OO y SQL, las fortalezas del modelo documental (one-to-many, localidad), las debilidades (many-to-many), la diferencia entre schema-on-write y schema-on-read, y por qué SQL declarativo permite mejores optimizaciones que código imperativo. Ahora: cuando los datos son <strong>altamente conectados</strong>, hay un tercer modelo — el de <strong>grafos</strong>.</p>
+</div>
+
+<div class="section">
+  <h2>🕸️ ¿Por qué un modelo de Grafo?</h2>
+  <p>El modelo relacional maneja well many-to-many pero se complica cuando las relaciones <em>entre</em> datos son el dato principal. Considera:</p>
+  <ul>
+    <li><strong>Redes sociales:</strong> personas conectadas con personas — who follows whom, mutual friends</li>
+    <li><strong>Web:</strong> páginas conectadas con páginas mediante hyperlinks — PageRank de Google</li>
+    <li><strong>Rutas:</strong> intersecciones conectadas por carreteras — GPS, mapas, Waze</li>
+    <li><strong>Dependencias:</strong> paquetes que dependen de paquetes — npm, Maven</li>
+    <li><strong>Knowledge graphs:</strong> "Madrid es la capital de España, que está en Europa"</li>
+  </ul>
+  <p>En todos estos, las relaciones son tan importantes como los nodos. Un grafo es la representación natural.</p>
+
+  <div class="diagram">
+    <svg width="620" height="220" viewBox="0 0 620 220">
+      <text x="310" y="20" text-anchor="middle" fill="#7aa2f7" font-size="12" font-weight="bold">Grafo de Propiedad — ejemplo de personas y lugares</text>
+      <!-- Nodes -->
+      <circle cx="120" cy="110" r="35" fill="#25262d" stroke="#7aa2f7" stroke-width="2"/>
+      <text x="120" y="106" text-anchor="middle" fill="#7aa2f7" font-size="11" font-weight="bold">Alex</text>
+      <text x="120" y="120" text-anchor="middle" fill="#9a9fad" font-size="9">Persona</text>
+
+      <circle cx="310" cy="60" r="35" fill="#25262d" stroke="#6fcf97" stroke-width="2"/>
+      <text x="310" y="56" text-anchor="middle" fill="#6fcf97" font-size="11" font-weight="bold">Santiago</text>
+      <text x="310" y="70" text-anchor="middle" fill="#9a9fad" font-size="9">Ciudad</text>
+
+      <circle cx="310" cy="160" r="35" fill="#25262d" stroke="#6fcf97" stroke-width="2"/>
+      <text x="310" y="156" text-anchor="middle" fill="#6fcf97" font-size="11" font-weight="bold">MercadoLibre</text>
+      <text x="310" y="170" text-anchor="middle" fill="#9a9fad" font-size="9">Empresa</text>
+
+      <circle cx="500" cy="110" r="35" fill="#25262d" stroke="#e6c07b" stroke-width="2"/>
+      <text x="500" y="106" text-anchor="middle" fill="#e6c07b" font-size="11" font-weight="bold">Chile</text>
+      <text x="500" y="120" text-anchor="middle" fill="#9a9fad" font-size="9">País</text>
+
+      <!-- Edges -->
+      <line x1="155" y1="95" x2="275" y2="72" stroke="#3a3d48" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <text x="195" y="72" text-anchor="middle" fill="#9a9fad" font-size="9">BORN_IN</text>
+
+      <line x1="155" y1="125" x2="275" y2="152" stroke="#3a3d48" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <text x="195" y="150" text-anchor="middle" fill="#9a9fad" font-size="9">WORKS_AT</text>
+
+      <line x1="345" y1="75" x2="465" y2="100" stroke="#3a3d48" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <text x="415" y="78" text-anchor="middle" fill="#9a9fad" font-size="9">WITHIN</text>
+
+      <line x1="345" y1="148" x2="465" y2="123" stroke="#3a3d48" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <text x="415" y="148" text-anchor="middle" fill="#9a9fad" font-size="9">HQ_IN</text>
+
+      <defs><marker id="arr2" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#3a3d48"/></marker></defs>
+    </svg>
+  </div>
+
+  <h3>Componentes del Grafo de Propiedad</h3>
+  <p>Un grafo de propiedad tiene dos tipos de objetos — <strong>vértices</strong> (nodos) y <strong>aristas</strong> (edges). Cada uno tiene:</p>
+  <ul>
+    <li>Un identificador único</li>
+    <li>Un conjunto de propiedades (key-value pairs)</li>
+    <li>Para aristas: un nodo de inicio, un nodo de fin, y un <strong>label</strong> describiendo la relación</li>
+  </ul>
+  <p>Las aristas son <em>dirigidas</em> (tienen dirección) pero puedes traversarlas en ambas direcciones. No hay esquema fijo: cualquier vértice puede conectarse con cualquier vértice mediante cualquier tipo de arista. Esto da una flexibilidad que SQL no puede igualar fácilmente.</p>
+</div>
+
+<div class="section">
+  <h2>⚡ Cypher — Query Language para Grafos (Neo4j)</h2>
+  <p>Cypher es el lenguaje de Neo4j. Usa una sintaxis visual ASCII para describir patrones de grafo: <code>(nodo)-[:RELACIÓN]->(nodo)</code>.</p>
+
+  <h3>Crear el grafo</h3>
+  <pre><span class="c">// Crear vértices y aristas en Cypher</span>
+<span class="kw">CREATE</span> (alex:<span class="n">Person</span> {name: <span class="s">'Alex'</span>, born: <span class="n">1995</span>})
+<span class="kw">CREATE</span> (santiago:<span class="n">City</span> {name: <span class="s">'Santiago'</span>})
+<span class="kw">CREATE</span> (chile:<span class="n">Country</span> {name: <span class="s">'Chile'</span>})
+<span class="kw">CREATE</span> (meli:<span class="n">Company</span> {name: <span class="s">'MercadoLibre'</span>})
+
+<span class="kw">CREATE</span> (alex)-[:<span class="n">BORN_IN</span>]->(santiago)
+<span class="kw">CREATE</span> (alex)-[:<span class="n">WORKS_AT</span> {since: <span class="n">2022</span>}]->(meli)
+<span class="kw">CREATE</span> (santiago)-[:<span class="n">WITHIN</span>]->(chile)</pre>
+
+  <h3>Query: ¿Quiénes emigraron de América Latina a Europa?</h3>
+  <pre><span class="c">// Encuentra personas nacidas en América Latina que ahora viven en Europa</span>
+<span class="kw">MATCH</span>
+  (person:<span class="n">Person</span>)-[:<span class="n">BORN_IN</span>]->(birthplace:<span class="n">Location</span>),
+  (birthplace)-[:<span class="n">WITHIN*0..]</span>->(latam:<span class="n">Region</span> {name:<span class="s">'Latin America'</span>}),
+  (person)-[:<span class="n">LIVES_IN</span>]->(residence:<span class="n">Location</span>),
+  (residence)-[:<span class="n">WITHIN*0..]</span>->(europe:<span class="n">Region</span> {name:<span class="s">'Europe'</span>})
+<span class="kw">RETURN</span> person.name</pre>
+
+  <div class="callout">
+    <strong>La magia de <code>WITHIN*0..]</code>:</strong> el asterisco indica traversal recursivo — puede seguir la cadena Santiago → Chile → América Latina sin importar cuántos niveles tenga la jerarquía. En SQL necesitarías WITH RECURSIVE, que es mucho más verboso.
+  </div>
+
+  <h3>¿Por qué Cypher es más expresivo que SQL para grafos?</h3>
+  <p>En SQL para encontrar "emigrantes de LatAm a Europa" necesitarías joins recursivos con WITH RECURSIVE, que el DB puede o no ejecutar eficientemente. En Cypher, el patrón visual captura exactamente la semántica: la sintaxis <em>parece</em> el grafo que estás describiendo.</p>
+</div>
+
+<div class="section">
+  <h2>🔁 Grafos en SQL: WITH RECURSIVE</h2>
+  <p>¿Puedes representar un grafo en SQL? Sí — vértices en una tabla, aristas en otra. ¿Puedes hacer queries de grafo en SQL? También sí, pero con WITH RECURSIVE, que es verboso y difícil de leer.</p>
+
+  <pre><span class="c">-- El mismo query de "dentro de región" en SQL puro:</span>
+<span class="kw">WITH RECURSIVE</span> in_usa(vertex_id) <span class="kw">AS</span> (
+    <span class="c">-- Caso base: la región "Latin America" misma</span>
+    <span class="kw">SELECT</span> vertex_id <span class="kw">FROM</span> vertices <span class="kw">WHERE</span> properties->><span class="s">'name'</span> = <span class="s">'Latin America'</span>
+  <span class="kw">UNION</span>
+    <span class="c">-- Paso recursivo: cualquier lugar dentro de un lugar ya incluido</span>
+    <span class="kw">SELECT</span> edges.tail_vertex
+    <span class="kw">FROM</span> edges
+    <span class="kw">JOIN</span> in_usa <span class="kw">ON</span> edges.head_vertex = in_usa.vertex_id
+    <span class="kw">WHERE</span> edges.label = <span class="s">'within'</span>
+)
+<span class="kw">SELECT</span> vertices.* <span class="kw">FROM</span> vertices, in_usa
+<span class="kw">WHERE</span> in_usa.vertex_id = vertices.vertex_id
+<span class="kw">AND</span> vertices.type = <span class="s">'person'</span>;</pre>
+
+  <p>Funciona. Pero compara con el Cypher: 3 líneas vs 15. El modelo de grafo no es solo una base de datos diferente — es un <strong>modelo de pensamiento diferente</strong> que se refleja en la concisión del lenguaje de query.</p>
+</div>
+
+<div class="section">
+  <h2>📐 Triple-Stores y RDF</h2>
+  <p>Las triple-stores usan una forma de representación diferente al grafo de propiedad: cada dato es un <strong>triple</strong> de tres partes: <code>(sujeto, predicado, objeto)</code>.</p>
+
+  <ul>
+    <li><strong>Sujeto:</strong> equivale a un vértice del grafo</li>
+    <li><strong>Predicado:</strong> equivale al label de la arista o una propiedad</li>
+    <li><strong>Objeto:</strong> puede ser un valor primitivo (string, número) o otro vértice</li>
+  </ul>
+
+  <pre><span class="c"># Turtle syntax (RDF)</span>
+@prefix : <http://example.org/> .
+
+:Alex a :Person ;
+    :name <span class="s">"Alex"</span> ;
+    :bornIn :Santiago .
+
+:Santiago a :City ;
+    :within :Chile .
+
+:Chile a :Country ;
+    :within :LatinAmerica .</pre>
+
+  <div class="callout warn">
+    <strong>RDF y la Web Semántica:</strong> Tim Berners-Lee (creador de HTTP) tenía la visión de una "Web Semántica" donde toda la información en internet estaría en formato RDF, permitiendo a las máquinas "entender" el contenido. Fue un proyecto ambicioso que nunca despegó masivamente, pero el formato RDF y SPARQL siguen usándose en knowledge graphs (DBpedia, Wikidata).
+  </div>
+
+  <h3>SPARQL — Query para Triple-Stores</h3>
+  <pre><span class="c"># El mismo query de emigrantes en SPARQL</span>
+<span class="kw">PREFIX</span> : <http://example.org/>
+
+<span class="kw">SELECT</span> ?personName
+<span class="kw">WHERE</span> {
+  ?person :name ?personName ;
+          :bornIn / :within* :LatinAmerica ;
+          :livesIn / :within* :Europe .
+}</pre>
+
+  <p>SPARQL usa el patrón <code>/</code> para traversal de paths y <code>*</code> para recursión — similar conceptualmente a Cypher pero con sintaxis derivada de SPARQL Protocol.</p>
+</div>
+
+<div class="section">
+  <h2>🧮 Datalog — El Ancestro Declarativo</h2>
+  <p>Datalog es más antiguo que Cypher o SPARQL — tiene raíces en Prolog (1970s) y fue estudiado académicamente en los 80s. Datomic (la DB de Rich Hickey) lo usa. Es poderoso porque permite definir <strong>reglas reutilizables</strong> — como funciones, pero declarativas.</p>
+
+  <p>En Datalog, los datos se expresan como <em>predicados</em>:</p>
+
+  <pre><span class="c">% Datos (hechos)</span>
+within(santiago, chile).
+within(chile, latin_america).
+born_in(alex, santiago).
+lives_in(alex, berlin).
+within(berlin, germany).
+within(germany, europe).</pre>
+
+  <pre><span class="c">% Reglas (como funciones recursivas)</span>
+<span class="c">% within_recursive(Lugar, Region) es verdad si:</span>
+within_recursive(Location, Region) :-
+    within(Location, Region).                <span class="c">% caso base directo</span>
+
+within_recursive(Location, Region) :-
+    within(Location, Via),                   <span class="c">% hay un lugar intermedio</span>
+    within_recursive(Via, Region).           <span class="c">% que recursivamente está en Region</span>
+
+<span class="c">% Query: personas nacidas en LatAm que viven en Europa</span>
+migrant(Name) :-
+    born_in(Person, BirthPlace),
+    within_recursive(BirthPlace, latin_america),
+    lives_in(Person, Residence),
+    within_recursive(Residence, europe),
+    person_name(Person, Name).</pre>
+
+  <div class="callout ok">
+    <strong>Ventaja de Datalog:</strong> las reglas se pueden componer y reutilizar. <code>within_recursive</code> es como una función que usás en múltiples queries. En SQL con WITH RECURSIVE tenés que reescribir la recursión cada vez. Datalog fomenta la abstracción.
+  </div>
+
+  <h3>¿Por qué importa entender Datalog?</h3>
+  <p>Muchos sistemas modernos tienen partes inspiradas en Datalog: Apache Spark (RDDs), sistemas de reglas de negocios, algunos query planners. Entender que hay más paradigmas de query que SQL te da perspectiva cuando evalúas herramientas.</p>
+</div>
+
+<div class="section">
+  <h2>🗺️ Comparación: ¿Cuándo usar qué modelo?</h2>
+
+  <div class="diagram">
+    <svg width="620" height="200" viewBox="0 0 620 200">
+      <text x="310" y="20" text-anchor="middle" fill="#7aa2f7" font-size="12" font-weight="bold">Mapa de modelos de datos por tipo de relación</text>
+      <!-- Columns -->
+      <rect x="20" y="35" width="180" height="150" rx="8" fill="#25262d" stroke="#7aa2f7"/>
+      <text x="110" y="58" text-anchor="middle" fill="#7aa2f7" font-size="11" font-weight="bold">Relacional (SQL)</text>
+      <text x="110" y="78" text-anchor="middle" fill="#9a9fad" font-size="10">✓ Many-to-many</text>
+      <text x="110" y="95" text-anchor="middle" fill="#9a9fad" font-size="10">✓ Queries ad-hoc</text>
+      <text x="110" y="112" text-anchor="middle" fill="#9a9fad" font-size="10">✓ Transacciones</text>
+      <text x="110" y="129" text-anchor="middle" fill="#9a9fad" font-size="10">✗ One-to-many</text>
+      <text x="110" y="146" text-anchor="middle" fill="#9a9fad" font-size="10">✗ Relaciones complejas</text>
+      <text x="110" y="165" text-anchor="middle" fill="#6fcf97" font-size="10">ej: PostgreSQL, MySQL</text>
+
+      <rect x="220" y="35" width="180" height="150" rx="8" fill="#25262d" stroke="#e6c07b"/>
+      <text x="310" y="58" text-anchor="middle" fill="#e6c07b" font-size="11" font-weight="bold">Documental</text>
+      <text x="310" y="78" text-anchor="middle" fill="#9a9fad" font-size="10">✓ One-to-many</text>
+      <text x="310" y="95" text-anchor="middle" fill="#9a9fad" font-size="10">✓ Localidad de datos</text>
+      <text x="310" y="112" text-anchor="middle" fill="#9a9fad" font-size="10">✓ Schema flexible</text>
+      <text x="310" y="129" text-anchor="middle" fill="#9a9fad" font-size="10">✗ Many-to-many</text>
+      <text x="310" y="146" text-anchor="middle" fill="#9a9fad" font-size="10">✗ JOINs complejos</text>
+      <text x="310" y="165" text-anchor="middle" fill="#6fcf97" font-size="10">ej: MongoDB, CouchDB</text>
+
+      <rect x="420" y="35" width="180" height="150" rx="8" fill="#25262d" stroke="#6fcf97"/>
+      <text x="510" y="58" text-anchor="middle" fill="#6fcf97" font-size="11" font-weight="bold">Grafo</text>
+      <text x="510" y="78" text-anchor="middle" fill="#9a9fad" font-size="10">✓ Relaciones complejas</text>
+      <text x="510" y="95" text-anchor="middle" fill="#9a9fad" font-size="10">✓ Traversal recursivo</text>
+      <text x="510" y="112" text-anchor="middle" fill="#9a9fad" font-size="10">✓ Sin schema rígido</text>
+      <text x="510" y="129" text-anchor="middle" fill="#9a9fad" font-size="10">✗ Queries analíticos</text>
+      <text x="510" y="146" text-anchor="middle" fill="#9a9fad" font-size="10">✗ Menos maduro</text>
+      <text x="510" y="165" text-anchor="middle" fill="#6fcf97" font-size="10">ej: Neo4j, Amazon Neptune</text>
+    </svg>
+  </div>
+
+  <div class="callout">
+    <strong>Insight clave del capítulo 2:</strong> No existe un modelo de datos que sea el mejor para todos los casos. Las bases de datos relacionales siguen siendo la opción predeterminada y razonable para la mayoría de casos. Los modelos documentales y de grafo existen porque hay clases de problemas donde el modelo relacional es torpe, no porque el relacional sea malo.
+  </div>
+</div>
+
+<div class="section">
+  <h2>📚 Glosario</h2>
+  <div class="glossary-grid">
+    <div class="gterm"><div class="gterm-name">Grafo de Propiedad</div><div class="gterm-def">Modelo donde datos son vértices y aristas (dirigidas, con label y propiedades). Neo4j. Ideal para datos altamente conectados.</div></div>
+    <div class="gterm"><div class="gterm-name">Cypher</div><div class="gterm-def">Lenguaje de query de Neo4j. Sintaxis ASCII visual: (nodo)-[:RELACIÓN]->(nodo). Soporta traversal recursivo con *.</div></div>
+    <div class="gterm"><div class="gterm-name">Triple-Store</div><div class="gterm-def">Almacena datos como triples (sujeto, predicado, objeto). Datomic, Virtuoso. Base de la Web Semántica de Berners-Lee.</div></div>
+    <div class="gterm"><div class="gterm-name">RDF</div><div class="gterm-def">Resource Description Framework. Estándar W3C para triples. Formato Turtle: :Subject :predicate :Object. SPARQL para queries.</div></div>
+    <div class="gterm"><div class="gterm-name">SPARQL</div><div class="gterm-def">Query language para RDF/triple-stores. Usa patrones de grafos y path expressions. Análogo a Cypher para Neo4j.</div></div>
+    <div class="gterm"><div class="gterm-name">Datalog</div><div class="gterm-def">Lenguaje declarativo basado en Prolog. Define reglas reutilizables recursivamente. Usado en Datomic, inspiró muchos query optimizers.</div></div>
+    <div class="gterm"><div class="gterm-name">WITH RECURSIVE</div><div class="gterm-def">Extension de SQL estándar para queries recursivos. Permite traversar jerarquías en grafos. Verboso comparado con Cypher.</div></div>
+    <div class="gterm"><div class="gterm-name">Knowledge Graph</div><div class="gterm-def">Representación de conocimiento como grafo. Wikidata, Google Knowledge Graph. Triples o grafos de propiedad. Permite inferencia semántica.</div></div>
+  </div>
+</div>
+
+<div class="quiz-section">
+  <h2>🧠 Quiz — 5 Preguntas</h2>
+  <div id="quiz-container"></div>
+  <div class="score-banner" id="score-banner">
+    <div class="score-big" id="score-big"></div>
+    <div style="color:var(--muted);margin-top:8px">¡Excelente! Siguiente: Storage Engines — Cómo las DBs guardan datos</div>
+  </div>
+</div>
+
+<button class="btn-complete pending" id="btn-complete" onclick="toggleComplete()">
+  ✓ Marcar parte 2.2 como completada
+</button>
+
+</div>
+<script>
+const PART_ID = "2.2";
+const STORAGE_KEY = "ddia-lectura-progreso";
+const PARTS = [
+  {id:"1.1",label:"Cap.1 — Sistemas & Confiabilidad"},
+  {id:"1.2",label:"Cap.1 — Escalabilidad & Mantenibilidad"},
+  {id:"2.1",label:"Cap.2 — Relacional vs Documental"},
+  {id:"2.2",label:"Cap.2 — Grafos & Datalog"},
+  {id:"3.1",label:"Cap.3 — Indexes: Hash, LSM, B-Tree"},
+  {id:"3.2",label:"Cap.3 — OLAP & Columnar Storage"},
+  {id:"4.1",label:"Cap.4 — Formatos: JSON, Protobuf, Avro"},
+  {id:"4.2",label:"Cap.4 — Dataflow: REST, RPC, Mensajería"},
+  {id:"5.1",label:"Cap.5 — Replicación: Leader/Follower"},
+  {id:"5.2",label:"Cap.5 — Multi-Leader & Leaderless"},
+  {id:"6.1",label:"Cap.6 — Particionado por clave e índices"},
+  {id:"6.2",label:"Cap.6 — Rebalanceo & Routing"},
+  {id:"7.1",label:"Cap.7 — ACID, Isolation, Lost Updates"},
+  {id:"7.2",label:"Cap.7 — Serializability, 2PL, SSI"},
+  {id:"8.1",label:"Cap.8 — Redes, Relojes, Process Pauses"},
+  {id:"8.2",label:"Cap.8 — Verdad, Byzantinos, Modelos"},
+  {id:"9.1",label:"Cap.9 — Linearizabilidad & Orden"},
+  {id:"9.2",label:"Cap.9 — Transacciones distribuidas & Consenso"},
+  {id:"10.1",label:"Cap.10 — Unix Tools & MapReduce"},
+  {id:"10.2",label:"Cap.10 — Joins, Outputs & Graph Processing"},
+  {id:"11.1",label:"Cap.11 — Mensajería, Logs, CDC, Event Sourcing"},
+  {id:"11.2",label:"Cap.11 — Stream Processing & Fault Tolerance"},
+  {id:"12.1",label:"Cap.12 — Integración & Unbundling"},
+  {id:"12.2",label:"Cap.12 — Corrección, Verificación & Ética"},
+];
+const QUIZ = [
+  {
+    q:"¿En qué tipo de problema brillan las bases de datos de grafo sobre las relacionales?",
+    opts:[
+      {t:"Cuando tienes más de 1 millón de registros que necesitan ser paginados", why:"El volumen no es el factor. Las relacionales escalan bien en volumen con índices. El grafo brilla por la complejidad de relaciones."},
+      {t:"Cuando los datos tienen relaciones altamente conectadas y necesitas traversal recursivo (amigos de amigos, rutas, dependencias)", correct:true},
+      {t:"Cuando necesitas transacciones ACID garantizadas", why:"Las DBs relacionales tienen ACID muy maduro. Las DBs de grafo también pueden tener transacciones pero no es su ventaja diferencial."},
+      {t:"Cuando los datos cambian muy frecuentemente", why:"La frecuencia de cambio no determina qué modelo usar. Depende de la estructura de los datos y las queries."},
+    ],
+    explain:"El grafo destaca cuando la 'cosa' que te interesa ES la relación entre entidades: amigos de mis amigos que no son mis amigos directos, el camino más corto entre dos nodos, todos los paquetes que dependen transitivamente de una librería. En SQL, esto requiere JOINs recursivos complejos (WITH RECURSIVE). En Cypher o SPARQL, es una línea con *. Si tus datos son tablas planas sin relaciones complejas, el relacional es mejor."
+  },
+  {
+    q:"¿Qué hace el asterisco en el patrón Cypher `(a)-[:WITHIN*0..]-(b)`?",
+    opts:[
+      {t:"Significa que la relación es opcional (puede existir o no)", why:"Para relaciones opcionales Cypher usa `?` o `OPTIONAL MATCH`. El asterisco tiene otra semántica."},
+      {t:"Multiplica el peso de la arista por el número de hops", why:"No existe tal concepto en Cypher directamente. El asterisco es sobre traversal de profundidad variable."},
+      {t:"Indica traversal recursivo de profundidad variable: sigue la relación WITHIN cualquier cantidad de veces hasta llegar a b", correct:true},
+      {t:"Selecciona todas las propiedades del nodo", why:"Para propiedades se usa {*} o se lista explícitamente. El asterisco en la relación indica traversal recursivo."},
+    ],
+    explain:"El patrón `(a)-[:WITHIN*0..]->(b)` significa: 'a está dentro de b, directamente o a través de cualquier número de niveles intermedios'. El `*0..` significa 'cero o más hops'. Esto captura: Santiago → Chile → LatinAmerica en una sola expresión, sin importar cuántos niveles tenga la jerarquía. Equivale al WITH RECURSIVE de SQL pero mucho más conciso. Es la killer feature de lenguajes de grafo."
+  },
+  {
+    q:"¿Cuál es la diferencia fundamental entre el modelo de Grafo de Propiedad y el modelo Triple-Store (RDF)?",
+    opts:[
+      {t:"El grafo de propiedad es más rápido; el triple-store es más expresivo", why:"No es una diferencia de velocidad sino de modelo de representación. Ambos pueden ser rápidos o lentos dependiendo de la implementación."},
+      {t:"En el grafo de propiedad los datos son vértices y aristas con propiedades libres; en triple-store cada dato es (sujeto, predicado, objeto) — un modelo más granular pero también puede representar grafos", correct:true},
+      {t:"El triple-store solo puede guardar strings; el grafo de propiedad soporta todos los tipos", why:"RDF soporta tipos xsd: (enteros, fechas, etc.). La diferencia no es de tipos de datos."},
+      {t:"El grafo de propiedad requiere esquema; el triple-store es schema-free", why:"Ambos son generalmente schema-free. La diferencia es el modelo de representación, no el esquema."},
+    ],
+    explain:"En un grafo de propiedad (Neo4j), un vértice puede tener: {name: 'Alex', born: 1995, role: 'developer'}. Las propiedades son pares key-value directamente en el nodo. En RDF/triple-store, ESO MISMO se representa como 3 triples separados: (Alex, name, 'Alex'), (Alex, born, 1995), (Alex, role, 'developer'). El triple-store es más granular y uniforme — todo son triples, siempre. El grafo de propiedad es más conveniente para propiedades pero ambos pueden representar los mismos datos."
+  },
+  {
+    q:"¿Por qué Datalog es más poderoso que SQL para queries de grafo aunque sea más antiguo?",
+    opts:[
+      {t:"Porque Datalog usa índices más eficientes que SQL", why:"La eficiencia de índices depende de la implementación, no del lenguaje. Datalog no tiene ventaja inherente en indexing."},
+      {t:"Porque Datalog puede definir reglas reutilizables recursivas que actúan como funciones: defines 'within_recursive' una vez y la usas en múltiples queries", correct:true},
+      {t:"Porque Datalog soporta más tipos de datos que SQL", why:"No es una ventaja de tipos de datos. SQL moderno tiene tipos muy ricos. La ventaja de Datalog es la abstracción mediante reglas."},
+      {t:"Porque Datalog fue diseñado para bases de datos distribuidas", why:"Datalog viene de la academia en la era pre-distribuida. No tiene ventaja inherente en distribución."},
+    ],
+    explain:"En SQL, si necesitas 'within recursivo' en dos queries diferentes, debes escribir el WITH RECURSIVE dos veces. En Datalog, defines una vez: `within_recursive(X, Y) :- within(X, Y). within_recursive(X, Y) :- within(X, Z), within_recursive(Z, Y).` y luego la reutilizas en cualquier query. Es como tener funciones en tu lenguaje de query. Esto hace que la lógica sea más modular y DRY. Es el mismo insight que hace que las funciones en programación sean útiles."
+  },
+  {
+    q:"Si necesitas implementar el sistema de recomendaciones 'amigos de amigos que compraron X' en ML, ¿qué modelo de datos sería más natural?",
+    opts:[
+      {t:"Modelo documental (MongoDB) — porque los usuarios tienen muchos campos", why:"El modelo documental es bueno para one-to-many, pero relaciones entre usuarios (seguir, ser amigos) no son one-to-many — son many-to-many complejas."},
+      {t:"Modelo de grafo (Neo4j) — porque 'amigos de amigos' es traversal de grafo en 2 hops, y 'compraron' es otra arista que conecta con productos", correct:true},
+      {t:"Modelo relacional (PostgreSQL) — porque siempre es la mejor opción default", why:"El relacional puede hacerlo, pero requeriría JOINs recursivos complejos. Para traversal de grafos profundos, el modelo de grafo es más natural."},
+      {t:"Triple-store (RDF) — porque la Web Semántica fue diseñada para esto", why:"RDF podría funcionar, pero el modelo de grafo de propiedad (Neo4j) es más conveniente para este caso y tiene mejor tooling para production."},
+    ],
+    explain:"'Amigos de amigos' es exactamente traversal de grafo a 2 hops: `MATCH (me:User)-[:FOLLOWS]->(friend)-[:FOLLOWS]->(fof) WHERE me.id = X AND fof <> me RETURN fof`. Agregar 'que compraron Y': `AND (fof)-[:PURCHASED]->(:Product {id: Y})`. En SQL: 3 JOINs incluyendo uno auto-referencial o WITH RECURSIVE. El grafo captura la semántica directamente. Cuando la forma de tus datos ES un grafo (redes sociales, recomendaciones, dependencias), úsalo."
+  },
+];
+
+function getCompleted(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||[];}catch(e){return[];}}
+function saveCompleted(list){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(list));}catch(e){}}
+
+function renderTimeline(){
+  const done=getCompleted();
+  const tl=document.getElementById('timeline');
+  tl.innerHTML='';
+  PARTS.forEach((p,i)=>{
+    const isCurrent=p.id===PART_ID;
+    const isDone=done.includes(p.id);
+    const node=document.createElement('div');
+    node.className='tl-node';
+    node.innerHTML=`<div class="tl-dot ${isDone?'done':isCurrent?'current':''}">${isDone?'✓':i+1}</div><div class="tl-label ${isCurrent?'current':''}">${p.id}</div>`;
+    tl.appendChild(node);
+    if(i<PARTS.length-1){
+      const line=document.createElement('div');
+      line.className=`tl-line ${isDone?'done':''}`;
+      tl.appendChild(line);
+    }
+  });
+  const n=done.length;
+  const pct=Math.round(n/PARTS.length*100);
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-text').textContent=`${n} de ${PARTS.length} partes completadas (${pct}%)`;
+  document.getElementById('prog-frac').textContent=`Cap ${Math.ceil(n/2)} de 12`;
+}
+
+function renderCompleteBtn(){
+  const done=getCompleted();
+  const btn=document.getElementById('btn-complete');
+  if(done.includes(PART_ID)){
+    btn.className='btn-complete done';
+    btn.textContent='✓ Parte 2.2 completada';
+  } else {
+    btn.className='btn-complete pending';
+    btn.textContent='✓ Marcar parte 2.2 como completada';
+  }
+}
+
+function toggleComplete(){
+  let done=getCompleted();
+  if(done.includes(PART_ID)){done=done.filter(x=>x!==PART_ID);}else{done.push(PART_ID);}
+  saveCompleted(done);renderTimeline();renderCompleteBtn();
+}
+
+let answers={};
+function renderQuiz(){
+  const c=document.getElementById('quiz-container');
+  c.innerHTML='';
+  QUIZ.forEach((q,qi)=>{
+    const letters=['A','B','C','D'];
+    const optsHtml=q.opts.map((o,oi)=>`
+      <div class="opt" id="opt-${qi}-${oi}" onclick="pick(${qi},${oi})">
+        <span class="opt-letter">${letters[oi]}</span>
+        <span class="opt-body">${o.t}${o.why?`<div class="opt-why" id="why-${qi}-${oi}">${o.why}</div>`:''}</span>
+      </div>`).join('');
+    const block=document.createElement('div');
+    block.className='q-block';
+    block.innerHTML=`<div class="q-num">Pregunta ${qi+1} de ${QUIZ.length}</div><div class="q-text">${q.q}</div>${optsHtml}<div class="q-explain" id="explain-${qi}">${q.explain}</div>`;
+    c.appendChild(block);
+  });
+}
+
+function pick(qi,oi){
+  if(answers[qi]!==undefined)return;
+  answers[qi]=oi;
+  const q=QUIZ[qi];
+  q.opts.forEach((o,i)=>{
+    const el=document.getElementById(`opt-${qi}-${i}`);
+    el.classList.add('disabled');
+    if(o.correct){el.classList.add('correct');}
+    else if(i===oi){el.classList.add('wrong');const why=document.getElementById(`why-${qi}-${i}`);if(why)why.style.display='block';}
+  });
+  document.getElementById(`explain-${qi}`).style.display='block';
+  if(Object.keys(answers).length===QUIZ.length){
+    const correct=QUIZ.filter((q,i)=>q.opts[answers[i]]?.correct).length;
+    const banner=document.getElementById('score-banner');
+    document.getElementById('score-big').textContent=`${correct}/${QUIZ.length}`;
+    banner.style.display='block';
+  }
+}
+
+renderTimeline();renderCompleteBtn();renderQuiz();
+</script>
+</body>
+</html>

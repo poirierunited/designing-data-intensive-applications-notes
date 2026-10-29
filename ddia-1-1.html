@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DDIA 1.1 — Pensando en Sistemas de Datos & Confiabilidad</title>
+<style>
+:root {
+  --bg:#1c1d22; --panel:#25262d; --panel-2:#2d2f37; --text:#e4e6eb;
+  --muted:#9a9fad; --accent:#7aa2f7; --ok:#6fcf97; --bad:#f2827a;
+  --warn:#e6c07b; --line:#3a3d48; --radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:16px;line-height:1.7;min-height:100vh}
+.shell{max-width:860px;margin:0 auto;padding:32px 20px 80px}
+
+/* header */
+.hdr{display:flex;align-items:center;gap:16px;margin-bottom:36px;padding-bottom:20px;border-bottom:1px solid var(--line)}
+.hdr-badge{background:var(--accent);color:#111;font-weight:700;font-size:13px;padding:4px 12px;border-radius:20px;white-space:nowrap}
+.hdr-title{font-size:22px;font-weight:700;line-height:1.2}
+.hdr-sub{color:var(--muted);font-size:14px;margin-top:4px}
+
+/* progress */
+.progress-wrap{margin-bottom:32px}
+.progress-label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:8px}
+.progress-bar{height:6px;background:var(--panel-2);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .4s}
+.timeline{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tl-dot{width:28px;height:28px;border-radius:50%;background:var(--panel-2);border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:var(--muted);cursor:default;transition:.2s}
+.tl-dot.done{background:var(--ok);border-color:var(--ok);color:#111}
+.tl-dot.current{background:var(--accent);border-color:var(--accent);color:#111}
+
+/* toc */
+.toc{background:var(--panel);border-radius:var(--radius);padding:20px 24px;margin-bottom:32px;border:1px solid var(--line)}
+.toc h3{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px}
+.toc ol{padding-left:18px}
+.toc li{font-size:14px;color:var(--accent);margin-bottom:6px;cursor:pointer}
+.toc li:hover{text-decoration:underline}
+
+/* sections */
+.section{margin-bottom:48px;scroll-margin-top:24px}
+.section h2{font-size:20px;font-weight:700;color:var(--accent);margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.section h3{font-size:17px;font-weight:600;margin:24px 0 10px;color:var(--text)}
+.section p{margin-bottom:14px;color:var(--text)}
+.section ul,.section ol{padding-left:20px;margin-bottom:14px}
+.section li{margin-bottom:6px}
+
+/* callout */
+.callout{border-left:3px solid var(--accent);background:var(--panel);border-radius:0 var(--radius) var(--radius) 0;padding:14px 18px;margin:20px 0;font-size:15px}
+.callout.warn{border-color:var(--warn)}
+.callout.ok{border-color:var(--ok)}
+.callout strong{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;color:var(--accent)}
+.callout.warn strong{color:var(--warn)}
+.callout.ok strong{color:var(--ok)}
+
+/* svg diagrams */
+.diagram{background:var(--panel);border-radius:var(--radius);padding:20px;margin:24px 0;overflow-x:auto;border:1px solid var(--line)}
+.diagram svg{display:block;margin:0 auto}
+
+/* code */
+code{background:var(--panel-2);padding:2px 7px;border-radius:5px;font-family:'Fira Code',monospace;font-size:14px;color:var(--warn)}
+pre{background:var(--panel-2);border-radius:var(--radius);padding:18px;overflow-x:auto;margin:16px 0}
+pre code{background:none;padding:0;font-size:13px}
+
+/* glossary */
+.glossary{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+@media(max-width:600px){.glossary{grid-template-columns:1fr}}
+.gterm{background:var(--panel);border-radius:var(--radius);padding:14px 16px;border:1px solid var(--line)}
+.gterm dt{font-weight:700;font-size:14px;color:var(--accent);margin-bottom:4px}
+.gterm dd{font-size:13px;color:var(--muted);margin:0}
+
+/* quiz */
+.quiz-wrap{background:var(--panel);border-radius:var(--radius);padding:24px;margin-top:40px;border:1px solid var(--line)}
+.quiz-wrap h2{font-size:18px;font-weight:700;margin-bottom:20px;color:var(--text)}
+.question{margin-bottom:28px;border-bottom:1px solid var(--line);padding-bottom:24px}
+.question:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.q-text{font-size:16px;font-weight:600;margin-bottom:14px;line-height:1.4}
+.q-num{color:var(--accent);margin-right:8px}
+.options{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:8px;border:1px solid var(--line);cursor:pointer;transition:.15s;background:var(--panel-2)}
+.opt:hover{border-color:var(--accent)}
+.opt input{margin-top:3px;accent-color:var(--accent);flex-shrink:0}
+.opt label{cursor:pointer;font-size:14px;line-height:1.4}
+.opt.correct{border-color:var(--ok);background:rgba(111,207,151,.08)}
+.opt.wrong{border-color:var(--bad);background:rgba(242,130,122,.08)}
+.opt.neutral{opacity:.5}
+.feedback{display:none;margin-top:10px;padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.5}
+.feedback.show{display:block}
+.feedback.ok{background:rgba(111,207,151,.1);border:1px solid var(--ok);color:var(--ok)}
+.feedback.bad{background:rgba(242,130,122,.1);border:1px solid var(--bad);color:var(--bad)}
+.check-btn{margin-top:14px;padding:9px 20px;border-radius:8px;background:var(--accent);color:#111;font-weight:700;font-size:14px;border:none;cursor:pointer;transition:.15s}
+.check-btn:hover{opacity:.85}
+.check-btn:disabled{opacity:.4;cursor:default}
+
+/* score & finish */
+.score-box{display:none;text-align:center;padding:28px;background:var(--panel-2);border-radius:var(--radius);margin-top:20px}
+.score-box.show{display:block}
+.score-num{font-size:48px;font-weight:900;color:var(--accent)}
+.score-label{color:var(--muted);font-size:15px;margin-top:4px}
+.finish-btn{margin-top:20px;padding:11px 28px;border-radius:8px;background:var(--ok);color:#111;font-weight:700;font-size:15px;border:none;cursor:pointer;transition:.15s}
+.finish-btn:hover{opacity:.85}
+.finish-msg{display:none;margin-top:16px;color:var(--ok);font-weight:600;font-size:15px}
+.finish-msg.show{display:block}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- Header -->
+<div class="hdr">
+  <div>
+    <div class="hdr-badge">Cap 1 · Parte 1</div>
+  </div>
+  <div>
+    <div class="hdr-title">Pensando en Sistemas de Datos &amp; Confiabilidad</div>
+    <div class="hdr-sub">Capítulo 1 — Reliable, Scalable, and Maintainable Applications</div>
+  </div>
+</div>
+
+<!-- Progress -->
+<div class="progress-wrap">
+  <div class="progress-label">
+    <span id="prog-text">Cargando progreso…</span>
+    <span id="prog-pct"></span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+  <div class="timeline" id="timeline"></div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <h3>En esta sesión</h3>
+  <ol>
+    <li onclick="jump('s1')">¿Qué es una aplicación data-intensive?</li>
+    <li onclick="jump('s2')">Los tres pilares: Reliability, Scalability, Maintainability</li>
+    <li onclick="jump('s3')">Confiabilidad (Reliability) en detalle</li>
+    <li onclick="jump('s4')">Tipos de fallas y tolerancia a fallos</li>
+    <li onclick="jump('s5')">Glosario clave</li>
+    <li onclick="jump('quiz')">Quiz — 5 preguntas</li>
+  </ol>
+</div>
+
+<!-- S1 -->
+<div class="section" id="s1">
+  <h2>1. ¿Qué es una aplicación data-intensive?</h2>
+  <p>La mayoría de las aplicaciones modernas no están limitadas por el poder de cómputo (<em>compute-intensive</em>), sino por los datos: su cantidad, complejidad y la velocidad con que cambian. A esto Kleppmann lo llama <strong>data-intensive applications</strong>.</p>
+  <p>Casi toda app data-intensive usa un conjunto de bloques estándar:</p>
+  <ul>
+    <li><strong>Databases</strong> — para almacenar datos y recuperarlos luego</li>
+    <li><strong>Caches</strong> — recordar resultados costosos para acelerar lecturas</li>
+    <li><strong>Search indexes</strong> — buscar y filtrar por keywords</li>
+    <li><strong>Stream processing</strong> — enviar mensajes a otros procesos, manejar de forma asíncrona</li>
+    <li><strong>Batch processing</strong> — procesar grandes volúmenes de datos periódicamente</li>
+  </ul>
+
+  <div class="diagram">
+    <svg width="720" height="200" viewBox="0 0 720 200">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#9a9fad"/>
+        </marker>
+      </defs>
+      <!-- App box -->
+      <rect x="290" y="70" width="140" height="56" rx="10" fill="#25262d" stroke="#7aa2f7" stroke-width="1.5"/>
+      <text x="360" y="101" text-anchor="middle" fill="#7aa2f7" font-size="13" font-weight="600">Application</text>
+      <!-- blocks -->
+      <rect x="20" y="80" width="110" height="38" rx="8" fill="#2d2f37" stroke="#3a3d48"/>
+      <text x="75" y="104" text-anchor="middle" fill="#e4e6eb" font-size="12">Database</text>
+      <rect x="160" y="20" width="110" height="38" rx="8" fill="#2d2f37" stroke="#3a3d48"/>
+      <text x="215" y="44" text-anchor="middle" fill="#e4e6eb" font-size="12">Cache</text>
+      <rect x="160" y="142" width="110" height="38" rx="8" fill="#2d2f37" stroke="#3a3d48"/>
+      <text x="215" y="166" text-anchor="middle" fill="#e4e6eb" font-size="12">Search Index</text>
+      <rect x="450" y="20" width="130" height="38" rx="8" fill="#2d2f37" stroke="#3a3d48"/>
+      <text x="515" y="44" text-anchor="middle" fill="#e4e6eb" font-size="12">Stream Processing</text>
+      <rect x="450" y="142" width="130" height="38" rx="8" fill="#2d2f37" stroke="#3a3d48"/>
+      <text x="515" y="166" text-anchor="middle" fill="#e4e6eb" font-size="12">Batch Processing</text>
+      <!-- arrows -->
+      <line x1="290" y1="98" x2="270" y2="99" stroke="#9a9fad" stroke-width="1.2" marker-end="url(#arr)"/>
+      <line x1="290" y1="88" x2="270" y2="40" stroke="#9a9fad" stroke-width="1.2" marker-end="url(#arr)"/>
+      <line x1="290" y1="112" x2="270" y2="162" stroke="#9a9fad" stroke-width="1.2" marker-end="url(#arr)"/>
+      <line x1="430" y1="88" x2="450" y2="40" stroke="#9a9fad" stroke-width="1.2" marker-end="url(#arr)"/>
+      <line x1="430" y1="112" x2="450" y2="162" stroke="#9a9fad" stroke-width="1.2" marker-end="url(#arr)"/>
+    </svg>
+  </div>
+
+  <p>Hoy en día estos bloques se dan tan por sentados (Redis para cache, Elasticsearch para search, Kafka para streams) que la pregunta no es <em>si usarlos</em>, sino <em>cómo combinarlos bien</em>. Ahí empieza el verdadero diseño de sistemas.</p>
+
+  <div class="callout">
+    <strong>Idea central del libro</strong>
+    Los data systems modernos son una combinación de herramientas especializadas. El ingeniero diseña las <em>interfaces</em> que las conectan, garantizando propiedades como performance, correctitud y confiabilidad de extremo a extremo.
+  </div>
+</div>
+
+<!-- S2 -->
+<div class="section" id="s2">
+  <h2>2. Los tres pilares: RSM</h2>
+
+  <div class="diagram">
+    <svg width="680" height="160" viewBox="0 0 680 160">
+      <!-- Reliability -->
+      <rect x="20" y="30" width="190" height="100" rx="12" fill="#25262d" stroke="#7aa2f7" stroke-width="1.5"/>
+      <text x="115" y="62" text-anchor="middle" fill="#7aa2f7" font-weight="700" font-size="14">Reliability</text>
+      <text x="115" y="82" text-anchor="middle" fill="#9a9fad" font-size="12">Funcionar correctamente</text>
+      <text x="115" y="100" text-anchor="middle" fill="#9a9fad" font-size="12">incluso con fallas</text>
+      <text x="115" y="120" text-anchor="middle" fill="#e4e6eb" font-size="11">fault-tolerant</text>
+      <!-- Scalability -->
+      <rect x="245" y="30" width="190" height="100" rx="12" fill="#25262d" stroke="#7aa2f7" stroke-width="1.5"/>
+      <text x="340" y="62" text-anchor="middle" fill="#7aa2f7" font-weight="700" font-size="14">Scalability</text>
+      <text x="340" y="82" text-anchor="middle" fill="#9a9fad" font-size="12">Mantener performance</text>
+      <text x="340" y="100" text-anchor="middle" fill="#9a9fad" font-size="12">cuando crece la carga</text>
+      <text x="340" y="120" text-anchor="middle" fill="#e4e6eb" font-size="11">load parameters · percentiles</text>
+      <!-- Maintainability -->
+      <rect x="470" y="30" width="190" height="100" rx="12" fill="#25262d" stroke="#7aa2f7" stroke-width="1.5"/>
+      <text x="565" y="62" text-anchor="middle" fill="#7aa2f7" font-weight="700" font-size="14">Maintainability</text>
+      <text x="565" y="82" text-anchor="middle" fill="#9a9fad" font-size="12">Operar y evolucionar</text>
+      <text x="565" y="100" text-anchor="middle" fill="#9a9fad" font-size="12">el sistema con facilidad</text>
+      <text x="565" y="120" text-anchor="middle" fill="#e4e6eb" font-size="11">operability · simplicity</text>
+    </svg>
+  </div>
+
+  <p>Estos tres conceptos no son independientes: un sistema que no escala termina siendo poco confiable bajo carga; uno difícil de mantener acumula deuda técnica que erosiona la confiabilidad. El libro los trata como ejes que atraviesan todos los demás capítulos.</p>
+</div>
+
+<!-- S3 -->
+<div class="section" id="s3">
+  <h2>3. Confiabilidad (Reliability) en detalle</h2>
+
+  <h3>Fault vs Failure</h3>
+  <p>La distinción clave del libro: un <strong>fault</strong> es cuando un componente individual se desvía de su comportamiento especificado. Un <strong>failure</strong> es cuando el sistema en su totalidad deja de servir al usuario. El objetivo es construir sistemas <em>fault-tolerant</em>: que conviertan faults en fallos internos manejables, antes de que lleguen a ser failures.</p>
+
+  <div class="callout warn">
+    <strong>⚠️ Contraintuitivo</strong>
+    Netflix con Chaos Monkey induce faults a propósito en producción. La idea: si entrenas constantemente a tu sistema para sobrevivir faults, reduce la probabilidad de failures inesperados en momentos críticos.
+  </div>
+
+  <h3>Tipos de faults</h3>
+
+  <div class="diagram">
+    <svg width="680" height="230" viewBox="0 0 680 230">
+      <!-- Hardware -->
+      <rect x="20" y="20" width="195" height="190" rx="12" fill="#25262d" stroke="#3a3d48"/>
+      <text x="117" y="46" text-anchor="middle" fill="#7aa2f7" font-weight="700" font-size="13">Hardware Faults</text>
+      <text x="117" y="68" text-anchor="middle" fill="#9a9fad" font-size="12">Aleatorios, sin correlación</text>
+      <rect x="36" y="80" width="163" height="28" rx="6" fill="#2d2f37"/>
+      <text x="118" y="99" text-anchor="middle" fill="#e4e6eb" font-size="11">Hard disk crash (MTTF ~10 años)</text>
+      <rect x="36" y="114" width="163" height="28" rx="6" fill="#2d2f37"/>
+      <text x="118" y="133" text-anchor="middle" fill="#e4e6eb" font-size="11">RAM error, power outage</text>
+      <rect x="36" y="148" width="163" height="28" rx="6" fill="#2d2f37"/>
+      <text x="118" y="167" text-anchor="middle" fill="#e4e6eb" font-size="11">Solución: redundancia (RAID)</text>
+      <text x="117" y="200" text-anchor="middle" fill="#6fcf97" font-size="11">Multi-machine redundancy → nube</text>
+      <!-- Software -->
+      <rect x="242" y="20" width="196" height="190" rx="12" fill="#25262d" stroke="#3a3d48"/>
+      <text x="340" y="46" text-anchor="middle" fill="#f2827a" font-weight="700" font-size="13">Software Faults</text>
+      <text x="340" y="68" text-anchor="middle" fill="#9a9fad" font-size="12">Sistemáticos y correlacionados</text>
+      <rect x="258" y="80" width="164" height="28" rx="6" fill="#2d2f37"/>
+      <text x="340" y="99" text-anchor="middle" fill="#e4e6eb" font-size="11">Bug que duerme por años</text>
+      <rect x="258" y="114" width="164" height="28" rx="6" fill="#2d2f37"/>
+      <text x="340" y="133" text-anchor="middle" fill="#e4e6eb" font-size="11">Leap second → Linux crash (2012)</text>
+      <rect x="258" y="148" width="164" height="28" rx="6" fill="#2d2f37"/>
+      <text x="340" y="167" text-anchor="middle" fill="#e4e6eb" font-size="11">Proceso consume todos los recursos</text>
+      <text x="340" y="200" text-anchor="middle" fill="#f2827a" font-size="11">Sin solución garantizada</text>
+      <!-- Human -->
+      <rect x="464" y="20" width="196" height="190" rx="12" fill="#25262d" stroke="#3a3d48"/>
+      <text x="562" y="46" text-anchor="middle" fill="#e6c07b" font-weight="700" font-size="13">Human Errors</text>
+      <text x="562" y="68" text-anchor="middle" fill="#9a9fad" font-size="12">Principal causa de outages</text>
+      <rect x="480" y="80" width="164" height="28" rx="6" fill="#2d2f37"/>
+      <text x="562" y="99" text-anchor="middle" fill="#e4e6eb" font-size="11">Config errors → 10-25% outages</text>
+      <rect x="480" y="114" width="164" height="28" rx="6" fill="#2d2f37"/>
+      <text x="562" y="133" text-anchor="middle" fill="#e4e6eb" font-size="11">Solución: sandboxes, rollbacks</text>
+      <rect x="480" y="148" width="164" height="28" rx="6" fill="#2d2f37"/>
+      <text x="562" y="167" text-anchor="middle" fill="#e4e6eb" font-size="11">Monitoring + alertas</text>
+      <text x="562" y="200" text-anchor="middle" fill="#e6c07b" font-size="11">Testing exhaustivo + gradual rollout</text>
+    </svg>
+  </div>
+
+  <h3>Mitigando faults de software</h3>
+  <p>Los hardware faults son más simples de mitigar (redundancia física). Los software faults son más peligrosos porque afectan a todos los nodos simultáneamente. Las estrategias incluyen:</p>
+  <ul>
+    <li>Testing exhaustivo: unit, integration, e2e</li>
+    <li>Aislamiento de procesos (containers, sandboxes)</li>
+    <li>Restart automático de procesos que crashean</li>
+    <li><strong>Monitoring y alertas</strong>: detectar cuando el sistema se desvía del contrato esperado</li>
+    <li>Diseñar para "crash-only" — si algo falla, reiniciar desde un estado conocido</li>
+  </ul>
+
+  <div class="callout ok">
+    <strong>🔑 Punto clave del capítulo</strong>
+    Un sistema puede ser <em>tolerante a faults</em> (fault-tolerant) sin ser <em>tolerante a todos los faults</em>. Siempre hay un scope: "tolerante a faults de hardware en un datacenter". Definir ese scope es parte del diseño.
+  </div>
+</div>
+
+<!-- S4 -->
+<div class="section" id="s4">
+  <h2>4. Reliability en la práctica</h2>
+
+  <h3>¿Cuándo sacrificar reliability?</h3>
+  <p>Kleppmann reconoce que a veces se sacrifica reliability deliberadamente para reducir costos (ej: app de prototipo no necesita replicación) o para llegar al mercado antes. El punto es que sea una <strong>decisión consciente</strong>, no descuido. "Irresponsable ignorar reliability" vs "trade-off justificado".</p>
+
+  <h3>Errores humanos: la causa más frecuente</h3>
+  <p>Un estudio de large internet services mostró que los <em>errores de configuración por operadores</em> fueron la principal causa de outages. Hardware solo fue 10-25%. Las mejores prácticas:</p>
+  <ul>
+    <li><strong>Well-designed abstractions y APIs</strong> que hagan lo correcto fácil y lo incorrecto difícil</li>
+    <li><strong>Sandboxes no-productivos</strong> para experimentar con datos reales sin riesgo</li>
+    <li><strong>Rollback fácil y rápido</strong> de cambios de configuración</li>
+    <li><strong>Gradual rollout</strong>: deploy a un subset de usuarios primero</li>
+    <li><strong>Telemetría clara</strong>: métricas de performance y error rates para detectar problemas</li>
+  </ul>
+
+  <div class="diagram">
+    <svg width="680" height="130" viewBox="0 0 680 130">
+      <!-- timeline rollout -->
+      <text x="20" y="25" fill="#9a9fad" font-size="12" font-weight="600">Gradual rollout — reduciendo blast radius de errores humanos</text>
+      <line x1="20" y1="70" x2="660" y2="70" stroke="#3a3d48" stroke-width="2"/>
+      <!-- stages -->
+      <circle cx="80" cy="70" r="14" fill="#25262d" stroke="#7aa2f7" stroke-width="2"/>
+      <text x="80" y="75" text-anchor="middle" fill="#7aa2f7" font-size="11">1%</text>
+      <text x="80" y="100" text-anchor="middle" fill="#9a9fad" font-size="10">canary</text>
+      <circle cx="220" cy="70" r="14" fill="#25262d" stroke="#7aa2f7" stroke-width="2"/>
+      <text x="220" y="75" text-anchor="middle" fill="#7aa2f7" font-size="11">5%</text>
+      <text x="220" y="100" text-anchor="middle" fill="#9a9fad" font-size="10">staging</text>
+      <circle cx="380" cy="70" r="14" fill="#25262d" stroke="#e6c07b" stroke-width="2"/>
+      <text x="380" y="75" text-anchor="middle" fill="#e6c07b" font-size="11">25%</text>
+      <text x="380" y="100" text-anchor="middle" fill="#9a9fad" font-size="10">monitor</text>
+      <circle cx="540" cy="70" r="14" fill="#25262d" stroke="#6fcf97" stroke-width="2"/>
+      <text x="540" y="75" text-anchor="middle" fill="#6fcf97" font-size="11">100%</text>
+      <text x="540" y="100" text-anchor="middle" fill="#9a9fad" font-size="10">full rollout</text>
+      <!-- arrows between -->
+      <line x1="94" y1="70" x2="206" y2="70" stroke="#3a3d48" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <line x1="234" y1="70" x2="366" y2="70" stroke="#3a3d48" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <line x1="394" y1="70" x2="526" y2="70" stroke="#3a3d48" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <!-- rollback -->
+      <text x="620" y="75" text-anchor="middle" fill="#f2827a" font-size="11">rollback</text>
+      <path d="M560,58 Q600,30 640,58" stroke="#f2827a" stroke-width="1.5" fill="none" stroke-dasharray="4,2"/>
+      <text x="600" y="28" text-anchor="middle" fill="#f2827a" font-size="10">si falla</text>
+    </svg>
+  </div>
+</div>
+
+<!-- S5 Glossary -->
+<div class="section" id="s5">
+  <h2>5. Glosario clave</h2>
+  <dl class="glossary">
+    <div class="gterm">
+      <dt>Fault</dt>
+      <dd>Un componente individual que se desvía de su comportamiento especificado. No necesariamente causa un failure.</dd>
+    </div>
+    <div class="gterm">
+      <dt>Failure</dt>
+      <dd>Cuando el sistema entero deja de servir al usuario. Es lo que queremos evitar; toleramos faults para prevenirlo.</dd>
+    </div>
+    <div class="gterm">
+      <dt>Fault-tolerant / Resilient</dt>
+      <dd>Sistema diseñado para sobrevivir ciertos tipos de faults sin llegar a failure.</dd>
+    </div>
+    <div class="gterm">
+      <dt>Data-intensive Application</dt>
+      <dd>App cuyo principal desafío es la cantidad, complejidad o velocidad de cambio de los datos (vs compute-intensive).</dd>
+    </div>
+    <div class="gterm">
+      <dt>Reliability</dt>
+      <dd>El sistema funciona correctamente (la función que el usuario espera), incluso cuando ocurren faults.</dd>
+    </div>
+    <div class="gterm">
+      <dt>Chaos Engineering</dt>
+      <dd>Induir faults deliberados en producción para validar la resiliencia real del sistema. Netflix Simian Army.</dd>
+    </div>
+    <div class="gterm">
+      <dt>MTTF</dt>
+      <dd>Mean Time To Failure. Los discos duros tienen ~10 años de MTTF; en un cluster de 10k discos, hay ~3 fallas por día.</dd>
+    </div>
+    <div class="gterm">
+      <dt>Telemetría</dt>
+      <dd>Métricas y logs que permiten detectar cuando el sistema se desvía del comportamiento esperado. Esencial para debugging.</dd>
+    </div>
+  </dl>
+</div>
+
+<!-- QUIZ -->
+<div class="quiz-wrap" id="quiz">
+  <h2>Quiz — 5 preguntas</h2>
+
+  <div class="question" id="q1">
+    <div class="q-text"><span class="q-num">1.</span> ¿Cuál es la diferencia fundamental entre un <em>fault</em> y un <em>failure</em>?</div>
+    <div class="options">
+      <div class="opt" id="q1-a">
+        <input type="radio" name="q1" value="a"><label>Un fault es siempre más grave que un failure</label>
+      </div>
+      <div class="opt" id="q1-b">
+        <input type="radio" name="q1" value="b"><label>Un fault es la desviación de un componente individual; un failure es cuando el sistema entero deja de funcionar para el usuario</label>
+      </div>
+      <div class="opt" id="q1-c">
+        <input type="radio" name="q1" value="c"><label>Son sinónimos; el libro los usa indistintamente</label>
+      </div>
+      <div class="opt" id="q1-d">
+        <input type="radio" name="q1" value="d"><label>Un failure solo aplica a hardware; un fault aplica a software</label>
+      </div>
+    </div>
+    <button class="check-btn" onclick="check('q1','b')">Verificar</button>
+    <div class="feedback" id="q1-fb-b">✅ Correcto. Esa es la distinción central: fault es en un componente, failure es en el sistema. El objetivo es tolerar faults para evitar failures.</div>
+    <div class="feedback" id="q1-fb-a">❌ Al revés. Un fault puede ser pequeño y no causar failure si el sistema es resiliente.</div>
+    <div class="feedback" id="q1-fb-c">❌ No son sinónimos. El libro hace una distinción precisa y técnica entre ambos.</div>
+    <div class="feedback" id="q1-fb-d">❌ Ambos pueden ser de hardware o software. La distinción es nivel de componente vs nivel de sistema.</div>
+  </div>
+
+  <div class="question" id="q2">
+    <div class="q-text"><span class="q-num">2.</span> ¿Por qué los software faults son generalmente más peligrosos que los hardware faults?</div>
+    <div class="options">
+      <div class="opt" id="q2-a"><input type="radio" name="q2" value="a"><label>Porque el software es más costoso de reparar</label></div>
+      <div class="opt" id="q2-b"><input type="radio" name="q2" value="b"><label>Porque son sistemáticos y correlacionados: un bug puede afectar a todos los nodos simultáneamente</label></div>
+      <div class="opt" id="q2-c"><input type="radio" name="q2" value="c"><label>Porque los hardware faults siempre se detectan inmediatamente</label></div>
+      <div class="opt" id="q2-d"><input type="radio" name="q2" value="d"><label>Porque el software no tiene redundancia disponible</label></div>
+    </div>
+    <button class="check-btn" onclick="check('q2','b')">Verificar</button>
+    <div class="feedback" id="q2-fb-b">✅ Exacto. Un bug sistemático puede hacer crash a todos los nodos al mismo tiempo, cosa que un disco duro que falla no puede hacer (es aleatorio, no correlacionado).</div>
+    <div class="feedback" id="q2-fb-a">❌ El costo no es el argumento central. La clave está en la correlación.</div>
+    <div class="feedback" id="q2-fb-c">❌ Al contrario, los hardware faults a menudo generan alertas claras. Los bugs de software pueden dormitar años antes de manifestarse.</div>
+    <div class="feedback" id="q2-fb-d">❌ El software sí puede tener redundancia (múltiples instancias), pero si todas corren el mismo código buggeado, la redundancia no ayuda.</div>
+  </div>
+
+  <div class="question" id="q3">
+    <div class="q-text"><span class="q-num">3.</span> Según estudios de large internet services, ¿cuál es la causa más frecuente de outages?</div>
+    <div class="options">
+      <div class="opt" id="q3-a"><input type="radio" name="q3" value="a"><label>Fallas de hardware (servidores / red)</label></div>
+      <div class="opt" id="q3-b"><input type="radio" name="q3" value="b"><label>Ataques DDoS</label></div>
+      <div class="opt" id="q3-c"><input type="radio" name="q3" value="c"><label>Errores de configuración por operadores humanos</label></div>
+      <div class="opt" id="q3-d"><input type="radio" name="q3" value="d"><label>Bugs en el código de aplicación</label></div>
+    </div>
+    <button class="check-btn" onclick="check('q3','c')">Verificar</button>
+    <div class="feedback" id="q3-fb-c">✅ Correcto. Los errores humanos de configuración son la principal causa. El hardware solo representó el 10-25% de los outages estudiados.</div>
+    <div class="feedback" id="q3-fb-a">❌ Hardware estuvo en solo el 10-25% de los casos. La mayoría fue por errores humanos.</div>
+    <div class="feedback" id="q3-fb-b">❌ Los DDoS no son mencionados como causa principal. Los errores humanos de configuración lo son.</div>
+    <div class="feedback" id="q3-fb-d">❌ Los bugs de código contribuyen, pero la causa más documentada son los errores de configuración del operador.</div>
+  </div>
+
+  <div class="question" id="q4">
+    <div class="q-text"><span class="q-num">4.</span> ¿Qué es Chaos Engineering (ej: Netflix Simian Army) y cuál es su justificación?</div>
+    <div class="options">
+      <div class="opt" id="q4-a"><input type="radio" name="q4" value="a"><label>Una técnica para hacer pruebas de carga, midiendo performance bajo alta concurrencia</label></div>
+      <div class="opt" id="q4-b"><input type="radio" name="q4" value="b"><label>Inducir faults deliberados en producción para verificar que el sistema es genuinamente resiliente y no solo en teoría</label></div>
+      <div class="opt" id="q4-c"><input type="radio" name="q4" value="c"><label>Un framework de testing unitario para microservicios</label></div>
+      <div class="opt" id="q4-d"><input type="radio" name="q4" value="d"><label>Un proceso para aleatoriamente apagar servidores en staging</label></div>
+    </div>
+    <button class="check-btn" onclick="check('q4','b')">Verificar</button>
+    <div class="feedback" id="q4-fb-b">✅ Exacto. La idea es que si entrenas al sistema constantemente para sobrevivir faults reales en producción, descubres y reparas puntos débiles antes de que causen failures inesperados.</div>
+    <div class="feedback" id="q4-fb-a">❌ Las pruebas de carga son load testing. Chaos Engineering es sobre faults, no sobre load.</div>
+    <div class="feedback" id="q4-fb-c">❌ No es un framework de testing unitario. Opera en producción real, no en tests.</div>
+    <div class="feedback" id="q4-fb-d">❌ Staging no es el punto clave; es hacerlo en producción lo que valida resiliencia real.</div>
+  </div>
+
+  <div class="question" id="q5">
+    <div class="q-text"><span class="q-num">5.</span> ¿Cuál de estas NO es una estrategia recomendada para reducir los errores humanos en sistemas de datos?</div>
+    <div class="options">
+      <div class="opt" id="q5-a"><input type="radio" name="q5" value="a"><label>Diseñar APIs y abstracciones que hagan lo correcto fácil y lo incorrecto difícil</label></div>
+      <div class="opt" id="q5-b"><input type="radio" name="q5" value="b"><label>Dar a los operadores acceso directo a producción sin intermediarios para que actúen rápido</label></div>
+      <div class="opt" id="q5-c"><input type="radio" name="q5" value="c"><label>Proveer sandboxes no-productivos para experimentar con datos reales sin riesgo</label></div>
+      <div class="opt" id="q5-d"><input type="radio" name="q5" value="d"><label>Hacer gradual rollout para limitar el impacto de bugs en producción</label></div>
+    </div>
+    <button class="check-btn" onclick="check('q5','b')">Verificar</button>
+    <div class="feedback" id="q5-fb-b">✅ Correcto — esa NO es la recomendación. Lo contrario: hay que separar los lugares donde se cometen errores de los lugares que pueden causar failures. El acceso directo sin controles amplifica el impacto humano.</div>
+    <div class="feedback" id="q5-fb-a">❌ Esa sí es una estrategia recomendada. Las buenas abstracciones reducen oportunidades de error.</div>
+    <div class="feedback" id="q5-fb-c">❌ Esa sí es recomendada. Los sandboxes permiten experimentar sin afectar usuarios reales.</div>
+    <div class="feedback" id="q5-fb-d">❌ Esa sí es recomendada. El gradual rollout (canary, % de usuarios) limita el blast radius.</div>
+  </div>
+
+  <div class="score-box" id="score-box">
+    <div class="score-num" id="score-num">0/5</div>
+    <div class="score-label">respuestas correctas</div>
+    <div style="margin-top:16px;color:var(--muted);font-size:14px" id="score-msg"></div>
+    <button class="finish-btn" id="finish-btn" onclick="markDone()" style="display:none">✓ Marcar parte 1.1 como completada</button>
+    <div class="finish-msg" id="finish-msg">🎉 ¡Parte 1.1 completada! Progreso guardado.</div>
+  </div>
+</div>
+
+</div><!-- /shell -->
+
+<script>
+const PART_ID = "1.1";
+const STORAGE_KEY = "ddia-lectura-progreso";
+const PARTS = [
+  "1.1","1.2",
+  "2.1","2.2",
+  "3.1","3.2",
+  "4.1","4.2",
+  "5.1","5.2",
+  "6.1","6.2",
+  "7.1","7.2",
+  "8.1","8.2",
+  "9.1","9.2",
+  "10.1","10.2",
+  "11.1","11.2",
+  "12.1","12.2"
+];
+
+function getCompleted(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||[];}catch(e){return[];}}
+function saveCompleted(list){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(list));}catch(e){}}
+
+function initProgress(){
+  const done = getCompleted();
+  const idx = PARTS.indexOf(PART_ID);
+  const tl = document.getElementById('timeline');
+  PARTS.forEach((p,i)=>{
+    const d = document.createElement('div');
+    d.className = 'tl-dot' + (done.includes(p) ? ' done' : (p === PART_ID ? ' current' : ''));
+    d.title = 'Parte ' + p;
+    d.textContent = p;
+    tl.appendChild(d);
+  });
+  const pct = Math.round((done.length / PARTS.length)*100);
+  document.getElementById('prog-fill').style.width = pct+'%';
+  document.getElementById('prog-pct').textContent = pct+'%';
+  document.getElementById('prog-text').textContent = done.length + ' de ' + PARTS.length + ' partes completadas';
+}
+
+function jump(id){document.getElementById(id).scrollIntoView({behavior:'smooth'})}
+
+const answers = {};
+let checked = {};
+
+function check(qid, correct){
+  const sel = document.querySelector(`input[name="${qid}"]:checked`);
+  if(!sel){alert('Selecciona una opción primero');return;}
+  if(checked[qid]) return;
+  checked[qid] = true;
+  const val = sel.value;
+  answers[qid] = val === correct;
+  const opts = document.querySelectorAll(`#${qid} .opt`);
+  opts.forEach(o=>{
+    const v = o.querySelector('input').value;
+    if(v === correct) o.classList.add('correct');
+    else if(v === val && val !== correct) o.classList.add('wrong');
+    else o.classList.add('neutral');
+  });
+  const fb = document.getElementById(`${qid}-fb-${val}`);
+  if(fb){fb.classList.add('show'); fb.classList.add(val===correct?'ok':'bad');}
+  document.querySelector(`#${qid} .check-btn`).disabled = true;
+
+  if(Object.keys(checked).length === 5){
+    const score = Object.values(answers).filter(Boolean).length;
+    const sb = document.getElementById('score-box');
+    sb.classList.add('show');
+    document.getElementById('score-num').textContent = score + '/5';
+    const msgs = ['Repasa el material e intenta de nuevo 💪','Buen intento, revisa las respuestas incorrectas','Bien! Repasa los conceptos que fallaste','Muy bien! Casi perfecto 🌟','¡Perfecto! Dominas este material 🚀'];
+    document.getElementById('score-msg').textContent = msgs[score];
+    if(score >= 3) document.getElementById('finish-btn').style.display='inline-block';
+  }
+}
+
+function markDone(){
+  const done = getCompleted();
+  if(!done.includes(PART_ID)) done.push(PART_ID);
+  saveCompleted(done);
+  document.getElementById('finish-btn').style.display='none';
+  document.getElementById('finish-msg').classList.add('show');
+  initProgress();
+}
+
+initProgress();
+</script>
+</body>
+</html>

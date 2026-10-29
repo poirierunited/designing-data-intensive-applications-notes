@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DDIA · Capítulo X · Parte X.X</title>
+<style>
+  :root {
+    --bg: #1c1d22;
+    --panel: #25262d;
+    --panel-2: #2d2f37;
+    --text: #e4e6eb;
+    --muted: #9a9fad;
+    --accent: #7aa2f7;
+    --ok: #6fcf97;
+    --bad: #f2827a;
+    --warn: #e6c07b;
+    --line: #3a3d48;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+    font-size: 18px;
+    line-height: 1.7;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* Cabecera */
+  header.top { border-bottom: 1px solid var(--line); padding-bottom: 20px; margin-bottom: 28px; }
+  .book { font-family: system-ui, sans-serif; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-size: 30px; margin: 8px 0 4px; line-height: 1.25; }
+  .meta { font-family: system-ui, sans-serif; color: var(--muted); font-size: 15px; }
+  .progress-bar { height: 6px; background: var(--panel-2); border-radius: 99px; margin-top: 16px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width .4s; }
+  .progress-label { font-family: system-ui, sans-serif; font-size: 13px; color: var(--muted); margin-top: 6px; }
+
+  /* Línea de tiempo */
+  .timeline { background: var(--panel); border-radius: var(--radius); padding: 18px 16px; margin-bottom: 36px; overflow-x: auto; }
+  .timeline h3 { font-family: system-ui, sans-serif; font-size: 13px; color: var(--muted); margin: 0 0 12px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+  .tl-row { display: flex; align-items: center; gap: 6px; min-width: max-content; }
+  .tl-group { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 6px; border-left: 1px solid var(--line); }
+  .tl-group:first-child { border-left: none; }
+  .tl-group-title { font-family: system-ui, sans-serif; font-size: 12px; color: var(--muted); }
+  .tl-parts { display: flex; gap: 6px; }
+  .node {
+    font-family: system-ui, sans-serif; font-size: 12px;
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--panel-2); color: var(--muted); border: 2px solid var(--line);
+  }
+  .node.done { background: var(--ok); color: #13201a; border-color: var(--ok); }
+  .node.current { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 4px rgba(122,162,247,.2); }
+
+  /* Secciones */
+  .recap { background: var(--panel); border-left: 4px solid var(--warn); border-radius: var(--radius); padding: 20px 24px; margin-bottom: 36px; }
+  .recap h2 { font-size: 20px; margin-top: 0; }
+  .recap ul { padding-left: 20px; }
+  h2.section { font-size: 24px; margin: 48px 0 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .key {
+    background: var(--panel-2); border-radius: var(--radius); padding: 16px 20px;
+    font-family: system-ui, sans-serif; font-size: 17px; color: var(--text); margin: 16px 0;
+  }
+  .key strong { color: var(--accent); }
+  .figure { background: var(--panel); border-radius: var(--radius); padding: 18px; margin: 20px 0; }
+  .figure figcaption { font-family: system-ui, sans-serif; font-size: 13px; color: var(--muted); margin-top: 10px; text-align: center; }
+  .example { border-left: 4px solid var(--accent); padding: 4px 0 4px 18px; margin: 20px 0; color: var(--text); }
+  .example .tag { font-family: system-ui, sans-serif; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+  .glossary { font-family: system-ui, sans-serif; font-size: 15px; background: var(--panel); border-radius: var(--radius); padding: 14px 18px; margin: 20px 0; }
+  .glossary dt { color: var(--accent); font-weight: 600; margin-top: 8px; }
+  .glossary dd { margin: 0 0 4px 0; color: var(--muted); }
+
+  /* Quiz */
+  .quiz { margin-top: 56px; }
+  .quiz-q { background: var(--panel); border-radius: var(--radius); padding: 20px 22px; margin-bottom: 18px; }
+  .quiz-q h3 { font-size: 18px; margin: 0 0 12px; font-family: system-ui, sans-serif; }
+  .opt {
+    display: block; width: 100%; text-align: left; font: inherit; font-family: system-ui, sans-serif; font-size: 16px;
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 14px; margin: 8px 0; cursor: pointer;
+  }
+  .opt:hover:not(:disabled) { border-color: var(--accent); }
+  .opt:disabled { cursor: default; }
+  .opt.correct { border-color: var(--ok); background: rgba(111,207,151,.12); }
+  .opt.wrong { border-color: var(--bad); background: rgba(242,130,122,.12); }
+  .feedback { font-family: system-ui, sans-serif; font-size: 15px; border-radius: 10px; padding: 12px 14px; margin-top: 10px; display: none; }
+  .feedback.show { display: block; }
+  .feedback.ok { background: rgba(111,207,151,.12); color: var(--ok); }
+  .feedback.bad { background: rgba(242,130,122,.1); color: var(--text); }
+  .feedback .why { color: var(--bad); font-weight: 600; }
+  .feedback .right { color: var(--ok); font-weight: 600; }
+  .score { font-family: system-ui, sans-serif; font-size: 18px; text-align: center; margin: 24px 0; display: none; }
+  .score.show { display: block; }
+
+  /* Pie */
+  .footer-action {
+    margin-top: 40px; background: var(--panel); border-radius: var(--radius); padding: 22px; text-align: center; font-family: system-ui, sans-serif;
+  }
+  .btn {
+    font: inherit; font-family: system-ui, sans-serif; font-size: 16px; padding: 12px 22px; border-radius: 10px; cursor: pointer;
+    background: var(--accent); color: #101320; border: none; font-weight: 600;
+  }
+  .btn.done { background: var(--ok); }
+  .next-hint { color: var(--muted); font-size: 14px; margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="book">Designing Data Intensive Applications</div>
+    <h1>Capítulo X · Parte X.X — Título de la parte</h1>
+    <div class="meta">Parte <span id="part-n">X</span> de 2 · Lectura diaria</div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="progress-label" id="progress-label">0 de 24 partes completadas</div>
+  </header>
+
+  <!-- Línea de tiempo: se genera con JS a partir de PARTS y del progreso en localStorage -->
+  <section class="timeline" aria-label="Línea de tiempo">
+    <h3>Línea de tiempo</h3>
+    <div class="tl-row" id="timeline"></div>
+  </section>
+
+  <!-- Recap del capítulo anterior -->
+  <section class="recap">
+    <h2>Recap: capítulo anterior</h2>
+    <ul>
+      <li>Idea clave 1 del capítulo anterior.</li>
+      <li>Idea clave 2.</li>
+      <li>Idea clave 3.</li>
+    </ul>
+  </section>
+
+  <!-- Resumen de la parte -->
+  <article>
+    <h2 class="section">1. Nombre de la primera sección</h2>
+    <p class="key"><strong>Idea central:</strong> una frase que resume el concepto más importante de esta sección.</p>
+    <p>Explicación condensada pero profunda. Aquí va el desarrollo del concepto, con los matices necesarios para entenderlo de verdad y no solo memorizarlo.</p>
+
+    <figure class="figure">
+      <!-- Diagrama de ejemplo: flujo de datos -->
+      <svg viewBox="0 0 640 140" width="100%" role="img" aria-label="Diagrama de ejemplo">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 z" fill="#7aa2f7"/>
+          </marker>
+        </defs>
+        <rect x="10" y="40" width="150" height="60" rx="10" fill="#2d2f37" stroke="#7aa2f7"/>
+        <text x="85" y="76" fill="#e4e6eb" font-family="system-ui" font-size="15" text-anchor="middle">Cliente</text>
+        <rect x="245" y="40" width="150" height="60" rx="10" fill="#2d2f37" stroke="#7aa2f7"/>
+        <text x="320" y="76" fill="#e4e6eb" font-family="system-ui" font-size="15" text-anchor="middle">Servicio</text>
+        <rect x="480" y="40" width="150" height="60" rx="10" fill="#2d2f37" stroke="#7aa2f7"/>
+        <text x="555" y="76" fill="#e4e6eb" font-family="system-ui" font-size="15" text-anchor="middle">Base de datos</text>
+        <line x1="160" y1="70" x2="240" y2="70" stroke="#7aa2f7" stroke-width="2" marker-end="url(#arr)"/>
+        <line x1="395" y1="70" x2="475" y2="70" stroke="#7aa2f7" stroke-width="2" marker-end="url(#arr)"/>
+      </svg>
+      <figcaption>Figura 1. Descripción del diagrama y qué relación muestra.</figcaption>
+    </figure>
+
+    <div class="example">
+      <div class="tag">Ejemplo</div>
+      Un caso concreto o analogía que haga tangible el concepto anterior.
+    </div>
+
+    <dl class="glossary">
+      <dt>Término clave</dt>
+      <dd>Definición breve en una o dos líneas.</dd>
+    </dl>
+
+    <h2 class="section">2. Nombre de la segunda sección</h2>
+    <p class="key"><strong>Idea central:</strong> otra idea fundamental de la parte.</p>
+    <p>Desarrollo de la idea.</p>
+  </article>
+
+  <!-- Mapa conceptual de la parte -->
+  <section class="figure">
+    <svg viewBox="0 0 640 180" width="100%" role="img" aria-label="Mapa conceptual">
+      <rect x="230" y="10" width="180" height="44" rx="22" fill="#7aa2f7" />
+      <text x="320" y="38" fill="#101320" font-family="system-ui" font-size="15" text-anchor="middle">Tema central</text>
+      <rect x="20" y="120" width="170" height="40" rx="8" fill="#2d2f37" stroke="#3a3d48"/>
+      <text x="105" y="145" fill="#e4e6eb" font-family="system-ui" font-size="14" text-anchor="middle">Subtema A</text>
+      <rect x="235" y="120" width="170" height="40" rx="8" fill="#2d2f37" stroke="#3a3d48"/>
+      <text x="320" y="145" fill="#e4e6eb" font-family="system-ui" font-size="14" text-anchor="middle">Subtema B</text>
+      <rect x="450" y="120" width="170" height="40" rx="8" fill="#2d2f37" stroke="#3a3d48"/>
+      <text x="535" y="145" fill="#e4e6eb" font-family="system-ui" font-size="14" text-anchor="middle">Subtema C</text>
+      <line x1="320" y1="54" x2="105" y2="120" stroke="#5a5f70" stroke-width="2"/>
+      <line x1="320" y1="54" x2="320" y2="120" stroke="#5a5f70" stroke-width="2"/>
+      <line x1="320" y1="54" x2="535" y2="120" stroke="#5a5f70" stroke-width="2"/>
+    </svg>
+    <figcaption>Mapa conceptual de la parte: cómo se relacionan las ideas.</figcaption>
+  </section>
+
+  <!-- Quiz: 5 preguntas -->
+  <section class="quiz">
+    <h2 class="section">Quiz de la parte</h2>
+    <div id="quiz"></div>
+    <div class="score" id="score"></div>
+  </section>
+
+  <!-- Acción de completar -->
+  <footer class="footer-action">
+    <button class="btn" id="complete-btn">Marcar parte como completada</button>
+    <div class="next-hint" id="next-hint"></div>
+  </footer>
+
+</div>
+
+<script>
+// ===== Configuración de la parte =====
+const PART_ID = "1.1";          // Cambiar en cada presentación
+const STORAGE_KEY = "ddia-lectura-progreso";
+
+// Orden completo del plan (24 partes)
+const PARTS = [
+  { id:"1.1", label:"Cap. 1 · Fundamentos I" }, { id:"1.2", label:"Cap. 1 · Fundamentos II" },
+  { id:"2.1", label:"Cap. 2" }, { id:"2.2", label:"Cap. 2" },
+  { id:"3.1", label:"Cap. 3" }, { id:"3.2", label:"Cap. 3" },
+  { id:"4.1", label:"Cap. 4" }, { id:"4.2", label:"Cap. 4" },
+  { id:"5.1", label:"Cap. 5" }, { id:"5.2", label:"Cap. 5" },
+  { id:"6.1", label:"Cap. 6" }, { id:"6.2", label:"Cap. 6" },
+  { id:"7.1", label:"Cap. 7" }, { id:"7.2", label:"Cap. 7" },
+  { id:"8.1", label:"Cap. 8" }, { id:"8.2", label:"Cap. 8" },
+  { id:"9.1", label:"Cap. 9" }, { id:"9.2", label:"Cap. 9" },
+  { id:"10.1", label:"Cap. 10" }, { id:"10.2", label:"Cap. 10" },
+  { id:"11.1", label:"Cap. 11" }, { id:"11.2", label:"Cap. 11" },
+  { id:"12.1", label:"Cap. 12" }, { id:"12.2", label:"Cap. 12" }
+];
+
+// ===== Progreso (localStorage) =====
+function getCompleted() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch (e) { return []; }
+}
+function setCompleted(list) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch (e) {}
+}
+
+// ===== Línea de tiempo =====
+function renderTimeline() {
+  const done = getCompleted();
+  const root = document.getElementById("timeline");
+  root.innerHTML = "";
+  const chapters = {};
+  PARTS.forEach(p => {
+    const ch = p.id.split(".")[0];
+    (chapters[ch] = chapters[ch] || []).push(p);
+  });
+  Object.keys(chapters).forEach(ch => {
+    const g = document.createElement("div");
+    g.className = "tl-group";
+    g.innerHTML = `<div class="tl-group-title">Cap. ${ch}</div><div class="tl-parts"></div>`;
+    const row = g.querySelector(".tl-parts");
+    chapters[ch].forEach(p => {
+      const n = document.createElement("div");
+      let cls = "node";
+      if (done.includes(p.id)) cls += " done";
+      if (p.id === PART_ID) cls += " current";
+      n.className = cls;
+      n.textContent = p.id;
+      n.title = p.label;
+      row.appendChild(n);
+    });
+    root.appendChild(g);
+  });
+
+  const pct = Math.round((done.length / PARTS.length) * 100);
+  document.getElementById("progress-fill").style.width = pct + "%";
+  document.getElementById("progress-label").textContent = `${done.length} de ${PARTS.length} partes completadas`;
+}
+
+// ===== Botón de completar =====
+function renderCompleteButton() {
+  const btn = document.getElementById("complete-btn");
+  const idx = PARTS.findIndex(p => p.id === PART_ID);
+  const next = PARTS[idx + 1];
+  const done = getCompleted().includes(PART_ID);
+  btn.textContent = done ? "Parte completada ✔ (desmarcar)" : "Marcar parte como completada";
+  btn.classList.toggle("done", done);
+  document.getElementById("next-hint").textContent =
+    next ? `Siguiente: ${next.id} · ${next.label}` : "Última parte del libro.";
+}
+document.getElementById("complete-btn").addEventListener("click", () => {
+  let done = getCompleted();
+  if (done.includes(PART_ID)) done = done.filter(x => x !== PART_ID);
+  else done.push(PART_ID);
+  setCompleted(done);
+  renderTimeline();
+  renderCompleteButton();
+});
+
+// ===== Quiz =====
+// Cada opción tiene "why": por qué NO es correcta (se muestra si el lector la elige).
+// "correctExplain" explica la alternativa correcta.
+const QUIZ = [
+  {
+    q: "Pregunta fundamental 1 sobre el concepto central de la parte.",
+    options: [
+      { text: "Alternativa A (incorrecta)", why: "Explicación de por qué esta opción no es correcta." },
+      { text: "Alternativa B (correcta)", correct: true },
+      { text: "Alternativa C (incorrecta)", why: "Explicación de por qué esta opción no es correcta." },
+      { text: "Alternativa D (incorrecta)", why: "Explicación de por qué esta opción no es correcta." }
+    ],
+    correctExplain: "Explicación de por qué la alternativa B es la correcta."
+  },
+  {
+    q: "Pregunta fundamental 2.",
+    options: [
+      { text: "Alternativa A (correcta)", correct: true },
+      { text: "Alternativa B (incorrecta)", why: "Motivo del error." },
+      { text: "Alternativa C (incorrecta)", why: "Motivo del error." },
+      { text: "Alternativa D (incorrecta)", why: "Motivo del error." }
+    ],
+    correctExplain: "Explicación de la alternativa correcta."
+  },
+  {
+    q: "Pregunta fundamental 3.",
+    options: [
+      { text: "Alternativa A (incorrecta)", why: "Motivo del error." },
+      { text: "Alternativa B (incorrecta)", why: "Motivo del error." },
+      { text: "Alternativa C (correcta)", correct: true },
+      { text: "Alternativa D (incorrecta)", why: "Motivo del error." }
+    ],
+    correctExplain: "Explicación de la alternativa correcta."
+  },
+  {
+    q: "Pregunta fundamental 4.",
+    options: [
+      { text: "Alternativa A (incorrecta)", why: "Motivo del error." },
+      { text: "Alternativa B (correcta)", correct: true },
+      { text: "Alternativa C (incorrecta)", why: "Motivo del error." },
+      { text: "Alternativa D (incorrecta)", why: "Motivo del error." }
+    ],
+    correctExplain: "Explicación de la alternativa correcta."
+  },
+  {
+    q: "Pregunta fundamental 5.",
+    options: [
+      { text: "Alternativa A (incorrecta)", why: "Motivo del error." },
+      { text: "Alternativa B (incorrecta)", why: "Motivo del error." },
+      { text: "Alternativa C (incorrecta)", why: "Motivo del error." },
+      { text: "Alternativa D (correcta)", correct: true }
+    ],
+    correctExplain: "Explicación de la alternativa correcta."
+  }
+];
+
+let score = 0;
+let answered = 0;
+
+function renderQuiz() {
+  const root = document.getElementById("quiz");
+  root.innerHTML = "";
+  QUIZ.forEach((item, qi) => {
+    const box = document.createElement("div");
+    box.className = "quiz-q";
+    box.innerHTML = `<h3>${qi + 1}. ${item.q}</h3>`;
+    const fb = document.createElement("div");
+    fb.className = "feedback";
+
+    item.options.forEach(opt => {
+      const b = document.createElement("button");
+      b.className = "opt";
+      b.textContent = opt.text;
+      b.addEventListener("click", () => {
+        const buttons = box.querySelectorAll(".opt");
+        buttons.forEach(x => x.disabled = true);
+        answered++;
+        if (opt.correct) {
+          b.classList.add("correct");
+          score++;
+          fb.className = "feedback show ok";
+          fb.innerHTML = `✔ Correcto. ${item.correctExplain}`;
+        } else {
+          b.classList.add("wrong");
+          // Marca la correcta
+          buttons.forEach((x, i) => { if (item.options[i].correct) x.classList.add("correct"); });
+          fb.className = "feedback show bad";
+          fb.innerHTML =
+            `<div class="why">✘ Incorrecto. ${opt.why || ""}</div>` +
+            `<div class="right">Respuesta correcta: ${item.options.find(o => o.correct).text}</div>` +
+            `<div>${item.correctExplain}</div>`;
+        }
+        if (answered === QUIZ.length) showScore();
+      });
+      box.appendChild(b);
+    });
+    box.appendChild(fb);
+    root.appendChild(box);
+  });
+}
+
+function showScore() {
+  const el = document.getElementById("score");
+  el.innerHTML = `Resultado: <strong>${score} de ${QUIZ.length}</strong> correctas. ` +
+    (score === QUIZ.length ? "Parte dominada." : "Revisa las explicaciones antes de marcar la parte como completada.");
+  el.classList.add("show");
+}
+
+// ===== Inicio =====
+document.getElementById("part-n").textContent = PART_ID.split(".")[1];
+renderTimeline();
+renderCompleteButton();
+renderQuiz();
+</script>
+</body>
+</html>

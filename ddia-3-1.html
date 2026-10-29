@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DDIA 3.1 — Storage Engines: Hash, SSTables, LSM, B-Trees</title>
+<style>
+:root {
+  --bg:#1c1d22; --panel:#25262d; --panel-2:#2d2f37; --text:#e4e6eb;
+  --muted:#9a9fad; --accent:#7aa2f7; --ok:#6fcf97; --bad:#f2827a;
+  --warn:#e6c07b; --line:#3a3d48; --radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Georgia',serif;font-size:17px;line-height:1.75}
+.wrap{max-width:820px;margin:0 auto;padding:32px 24px 80px}
+.hdr{display:flex;align-items:center;gap:16px;padding-bottom:24px;border-bottom:1px solid var(--line);margin-bottom:28px}
+.hdr-badge{background:var(--warn);color:#0d1117;font-size:11px;font-weight:700;padding:4px 10px;border-radius:6px;letter-spacing:.05em;font-family:monospace}
+.hdr-title{font-size:22px;font-weight:700}
+.hdr-sub{font-size:13px;color:var(--muted);margin-top:2px}
+.prog-wrap{margin-bottom:32px}
+.prog-label{font-size:12px;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between}
+.prog-track{height:6px;background:var(--panel-2);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .4s}
+.timeline-scroll{overflow-x:auto;padding-bottom:12px;margin-bottom:36px}
+.timeline{display:flex;gap:0;min-width:max-content;align-items:center}
+.tl-node{display:flex;flex-direction:column;align-items:center}
+.tl-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);background:var(--panel);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--muted);flex-shrink:0}
+.tl-dot.done{background:var(--ok);border-color:var(--ok);color:#0d1117}
+.tl-dot.current{background:var(--accent);border-color:var(--accent);color:#0d1117;box-shadow:0 0 0 3px rgba(122,162,247,.3)}
+.tl-label{font-size:8px;color:var(--muted);margin-top:5px;text-align:center;max-width:52px;line-height:1.2}
+.tl-label.current{color:var(--accent);font-weight:600}
+.tl-line{width:18px;height:2px;background:var(--line);flex-shrink:0;margin-bottom:22px}
+.tl-line.done{background:var(--ok)}
+.section{background:var(--panel);border-radius:var(--radius);padding:28px 32px;margin-bottom:24px;border:1px solid var(--line)}
+.section h2{font-size:18px;color:var(--accent);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.section h3{font-size:15px;color:var(--warn);margin:20px 0 10px}
+.section p{margin-bottom:14px}
+.section ul{padding-left:20px;margin-bottom:14px}
+.section ul li{margin-bottom:8px}
+.recap{background:var(--panel-2);border-left:3px solid var(--warn);border-radius:0 var(--radius) var(--radius) 0;padding:18px 22px;margin-bottom:24px}
+.recap-title{font-size:11px;font-weight:700;color:var(--warn);letter-spacing:.08em;margin-bottom:10px;text-transform:uppercase}
+.callout{background:var(--panel-2);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:14px 18px;margin:18px 0;font-size:15px}
+.callout.warn{border-color:var(--warn)}
+.callout.ok{border-color:var(--ok)}
+.callout.bad{border-color:var(--bad)}
+.diagram{background:#16171c;border:1px solid var(--line);border-radius:10px;padding:20px;margin:20px 0;overflow-x:auto;text-align:center}
+code{background:var(--panel-2);padding:2px 7px;border-radius:4px;font-size:14px;font-family:monospace;color:var(--warn)}
+pre{background:var(--panel-2);border-radius:8px;padding:14px 16px;margin:14px 0;overflow-x:auto;font-size:13px;font-family:monospace;color:var(--warn);line-height:1.6}
+pre .c{color:#5c6370}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+@media(max-width:600px){.two-col{grid-template-columns:1fr}}
+.col-box{background:var(--panel-2);border-radius:8px;padding:14px;border:1px solid var(--line)}
+.col-title{font-size:13px;font-weight:700;margin-bottom:8px}
+.col-title.lsm{color:var(--ok)}
+.col-title.btree{color:var(--warn)}
+.col-title.hash{color:var(--accent)}
+.col-list{font-size:13px;color:var(--muted);line-height:1.7;padding-left:16px}
+.glossary-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+@media(max-width:600px){.glossary-grid{grid-template-columns:1fr}}
+.gterm{background:var(--panel-2);border-radius:8px;padding:12px 14px;border:1px solid var(--line)}
+.gterm-name{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:4px}
+.gterm-def{font-size:13px;color:var(--muted);line-height:1.4}
+.quiz-section{background:var(--panel);border-radius:var(--radius);padding:28px 32px;margin-bottom:24px;border:1px solid var(--line)}
+.quiz-section h2{font-size:18px;color:var(--accent);margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.q-block{margin-bottom:28px;padding-bottom:28px;border-bottom:1px solid var(--line)}
+.q-block:last-of-type{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.q-num{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.08em;margin-bottom:8px;text-transform:uppercase}
+.q-text{font-size:16px;margin-bottom:14px;line-height:1.6}
+.opt{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:8px;border:1px solid var(--line);margin-bottom:8px;cursor:pointer;transition:all .15s;font-size:14px;background:var(--panel-2)}
+.opt:hover{border-color:var(--accent);background:#2a2f45}
+.opt.correct{border-color:var(--ok);background:#1a2e22}
+.opt.wrong{border-color:var(--bad);background:#2e1a1a}
+.opt.disabled{cursor:default;pointer-events:none}
+.opt-letter{font-weight:700;color:var(--muted);flex-shrink:0;margin-top:1px;width:16px}
+.opt-body{flex:1}
+.opt-why{margin-top:6px;font-size:13px;color:var(--muted);font-style:italic;display:none}
+.opt.correct .opt-letter{color:var(--ok)}
+.opt.wrong .opt-letter{color:var(--bad)}
+.q-explain{display:none;margin-top:10px;padding:12px 16px;background:var(--panel-2);border-radius:8px;border-left:3px solid var(--ok);font-size:14px}
+.score-banner{display:none;text-align:center;padding:20px;background:var(--panel-2);border-radius:10px;margin-top:20px}
+.score-big{font-size:36px;font-weight:700;color:var(--ok)}
+.btn-complete{display:block;width:100%;padding:16px;border-radius:var(--radius);border:none;cursor:pointer;font-size:16px;font-weight:700;font-family:'Georgia',serif;transition:all .2s;margin-top:8px}
+.btn-complete.pending{background:var(--accent);color:#0d1117}
+.btn-complete.pending:hover{opacity:.9}
+.btn-complete.done{background:var(--ok);color:#0d1117}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hdr">
+  <div><div class="hdr-badge">PARTE 3.1</div></div>
+  <div>
+    <div class="hdr-title">Storage Engines: Hash, SSTables, LSM y B-Trees</div>
+    <div class="hdr-sub">Capítulo 3 · Storage y Retrieval · ~20 min</div>
+  </div>
+</div>
+
+<div class="prog-wrap">
+  <div class="prog-label"><span id="prog-text">Cargando…</span><span id="prog-frac"></span></div>
+  <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+</div>
+
+<div class="timeline-scroll"><div class="timeline" id="timeline"></div></div>
+
+<div class="recap">
+  <div class="recap-title">📖 Recap — Capítulo 2</div>
+  <p style="font-size:14px;color:var(--text);margin:0">El Cap.2 exploró modelos de datos: relacional (SQL, JOINs, schema-on-write), documental (MongoDB, one-to-many, localidad) y grafo (Neo4j/Cypher para datos conectados, triple-stores/SPARQL, Datalog). Aprendiste que el modelo relacional domina pero no sirve para todo. Ahora el Cap.3 baja un nivel: ¿<strong>cómo el storage engine guarda y recupera datos en disco</strong>? Esto define el rendimiento que el developer experimenta.</p>
+</div>
+
+<div class="section">
+  <h2>🔑 El Trade-off Fundamental de Índices</h2>
+  <p>La base de datos más simple que puede existir es un archivo de texto donde agregas registros al final:</p>
+
+  <pre><span class="c">#!/bin/bash</span>
+<span class="c"># La DB más simple del mundo</span>
+db_set() { echo "$1,$2" >> database.txt; }
+db_get() { grep "^$1," database.txt | tail -n 1 | cut -d',' -f2; }
+
+db_set "user:1" '{"name":"Alex","role":"dev"}'
+db_set "user:1" '{"name":"Alex","role":"senior dev"}'  <span class="c"># update = append</span>
+db_get "user:1"  <span class="c"># retorna la última versión</span></pre>
+
+  <p><strong>Escritura:</strong> O(1) — siempre al final. <strong>Lectura:</strong> O(n) — scan de todo el archivo. Esto escala terriblemente para lecturas.</p>
+
+  <p>Los <strong>índices</strong> resuelven el problema de lectura — estructuras adicionales que derivamos de los datos principales para acelerar queries. El trade-off es universal e inevitable:</p>
+
+  <div class="callout warn">
+    <strong>Trade-off fundamental de índices:</strong> Los índices aceleran lecturas pero enlentecen escrituras. Cada escritura debe actualizar el dato Y todos sus índices. No hay índice gratis — solo elegís cuánta penalización de escritura aceptás por velocidad de lectura. Por eso no se indexa todo por default.
+  </div>
+</div>
+
+<div class="section">
+  <h2>🗄️ Hash Indexes — El Índice más Simple</h2>
+  <p>Solución de Bitcask (storage engine de Riak): un hash map en memoria donde cada clave mapea al <strong>byte offset</strong> en el archivo de datos donde está el valor.</p>
+
+  <div class="diagram">
+    <svg width="620" height="210" viewBox="0 0 620 210">
+      <text x="310" y="20" text-anchor="middle" fill="#7aa2f7" font-size="12" font-weight="bold">Bitcask: Hash Map en memoria → byte offsets en disco</text>
+      <!-- Memory -->
+      <rect x="20" y="35" width="200" height="160" rx="8" fill="#25262d" stroke="#7aa2f7"/>
+      <text x="120" y="58" text-anchor="middle" fill="#7aa2f7" font-size="11" font-weight="bold">RAM — Hash Map</text>
+      <text x="40" y="80" fill="#e6c07b" font-size="11" font-family="monospace">"user:1"  → 0</text>
+      <text x="40" y="100" fill="#e6c07b" font-size="11" font-family="monospace">"user:2"  → 64</text>
+      <text x="40" y="120" fill="#e6c07b" font-size="11" font-family="monospace">"item:99" → 128</text>
+      <text x="40" y="140" fill="#e6c07b" font-size="11" font-family="monospace">"user:1"  → 192</text>
+      <text x="120" y="175" text-anchor="middle" fill="#9a9fad" font-size="9">✓ Fit en RAM = O(1) lookup</text>
+      <!-- Disk -->
+      <rect x="260" y="35" width="340" height="160" rx="8" fill="#25262d" stroke="#6fcf97"/>
+      <text x="430" y="58" text-anchor="middle" fill="#6fcf97" font-size="11" font-weight="bold">Disco — Append-Only Log</text>
+      <rect x="280" y="65" width="300" height="28" rx="4" fill="#1a2e22"/>
+      <text x="290" y="83" fill="#6fcf97" font-size="10" font-family="monospace">offset 0: user:1 → {"name":"Alex"}</text>
+      <rect x="280" y="98" width="300" height="28" rx="4" fill="#1a2e22"/>
+      <text x="290" y="116" fill="#6fcf97" font-size="10" font-family="monospace">offset 64: user:2 → {"name":"María"}</text>
+      <rect x="280" y="131" width="300" height="28" rx="4" fill="#1a2e22"/>
+      <text x="290" y="149" fill="#6fcf97" font-size="10" font-family="monospace">offset 128: item:99 → {"price": 99}</text>
+      <rect x="280" y="164" width="300" height="28" rx="4" fill="#1a2e22" opacity=".8"/>
+      <text x="290" y="182" fill="#6fcf97" font-size="10" font-family="monospace">offset 192: user:1 → {"name":"Alex Sr."}</text>
+      <!-- Arrow -->
+      <line x1="220" y1="140" x2="260" y2="178" stroke="#e6c07b" stroke-width="1.5" stroke-dasharray="4"/>
+      <text x="238" y="152" fill="#e6c07b" font-size="9">seek</text>
+    </svg>
+  </div>
+
+  <h3>Compaction y Merging de Segmentos</h3>
+  <p>Con el tiempo, el log crece indefinidamente. Solución: dividir en <strong>segmentos</strong> de tamaño fijo. Cuando un segmento está lleno, se compacta en background:</p>
+  <ul>
+    <li><strong>Compaction:</strong> dentro de un segmento, descarta duplicados — solo mantiene el valor más reciente por clave</li>
+    <li><strong>Merging:</strong> combina múltiples segmentos compactados en uno solo (merge sort por clave)</li>
+    <li>Mientras se mergea, las lecturas van al segmento viejo; cuando termina, se switcha al nuevo</li>
+  </ul>
+
+  <h3>Detalles de implementación reales</h3>
+  <ul>
+    <li><strong>Tombstones:</strong> para borrar una clave, se escribe un marcador especial. En el merging, el tombstone descarta versiones anteriores</li>
+    <li><strong>Crash recovery:</strong> al reiniciar, reconstruir el hash map escaneando todos los segmentos sería lento. Bitcask guarda snapshots del hash map en disco periódicamente</li>
+    <li><strong>Escrituras parciales:</strong> si cae el proceso a mitad de una escritura, el registro queda corrupto. Bitcask usa checksums para detectar registros corruptos</li>
+    <li><strong>Concurrencia:</strong> solo un writer (append-only es inherentemente secuencial); múltiples readers son seguros</li>
+  </ul>
+
+  <h3>¿Por qué append-only en lugar de actualizar en-lugar?</h3>
+  <ul>
+    <li>Escrituras secuenciales son mucho más rápidas que escrituras aleatorias en disco (HDD especialmente, pero también SSD)</li>
+    <li>Recovery más simple — si hay crash, el log muestra el estado exacto</li>
+    <li>Merging elimina fragmentación</li>
+  </ul>
+
+  <div class="callout bad">
+    <strong>Limitación crítica del Hash Index:</strong> todas las claves deben caber en RAM. Si tienes más claves que memoria, no funciona. Tampoco soporta range queries eficientes: "dame todos los usuarios con age entre 20 y 30" requiere escanear todo el hash.
+  </div>
+</div>
+
+<div class="section">
+  <h2>📊 SSTables — Sorted String Tables</h2>
+  <p>Una mejora simple pero poderosa sobre el log con hash index: ordenar los pares key-value dentro de cada segmento. Esto requiere que las escrituras se ordenen antes de escribir al disco (no se puede hacer append-only directamente).</p>
+
+  <div class="diagram">
+    <svg width="620" height="180" viewBox="0 0 620 180">
+      <text x="310" y="20" text-anchor="middle" fill="#7aa2f7" font-size="12" font-weight="bold">SSTable: segmentos ordenados → merge eficiente</text>
+      <!-- Segment A -->
+      <rect x="20" y="35" width="170" height="130" rx="8" fill="#25262d" stroke="#7aa2f7"/>
+      <text x="105" y="55" text-anchor="middle" fill="#7aa2f7" font-size="11" font-weight="bold">Segmento A (viejo)</text>
+      <text x="105" y="75" text-anchor="middle" fill="#9a9fad" font-size="10" font-family="monospace">apple → 5</text>
+      <text x="105" y="92" text-anchor="middle" fill="#9a9fad" font-size="10" font-family="monospace">cat   → 12</text>
+      <text x="105" y="109" text-anchor="middle" fill="#9a9fad" font-size="10" font-family="monospace">dog   → 6</text>
+      <text x="105" y="126" text-anchor="middle" fill="#9a9fad" font-size="10" font-family="monospace">emu   → 3</text>
+      <text x="105" y="153" text-anchor="middle" fill="#9a9fad" font-size="9">ordenado por clave</text>
+      <!-- Segment B -->
+      <rect x="210" y="35" width="170" height="130" rx="8" fill="#25262d" stroke="#e6c07b"/>
+      <text x="295" y="55" text-anchor="middle" fill="#e6c07b" font-size="11" font-weight="bold">Segmento B (nuevo)</text>
+      <text x="295" y="75" text-anchor="middle" fill="#9a9fad" font-size="10" font-family="monospace">cat   → 20</text>
+      <text x="295" y="92" text-anchor="middle" fill="#9a9fad" font-size="10" font-family="monospace">dog   → 8</text>
+      <text x="295" y="109" text-anchor="middle" fill="#9a9fad" font-size="10" font-family="monospace">fox   → 15</text>
+      <text x="295" y="126" text-anchor="middle" fill="#9a9fad" font-size="10" font-family="monospace">gnu   → 1</text>
+      <text x="295" y="153" text-anchor="middle" fill="#9a9fad" font-size="9">cat,dog → B gana</text>
+      <!-- Merged -->
+      <rect x="400" y="35" width="200" height="130" rx="8" fill="#1a2e22" stroke="#6fcf97"/>
+      <text x="500" y="55" text-anchor="middle" fill="#6fcf97" font-size="11" font-weight="bold">Merged (resultado)</text>
+      <text x="500" y="75" text-anchor="middle" fill="#9a9fad" font-size="10" font-family="monospace">apple → 5</text>
+      <text x="500" y="92" text-anchor="middle" fill="#9a9fad" font-size="10" font-family="monospace">cat   → 20 ✓B</text>
+      <text x="500" y="109" text-anchor="middle" fill="#9a9fad" font-size="10" font-family="monospace">dog   → 8  ✓B</text>
+      <text x="500" y="126" text-anchor="middle" fill="#9a9fad" font-size="10" font-family="monospace">emu   → 3</text>
+      <text x="500" y="143" text-anchor="middle" fill="#9a9fad" font-size="10" font-family="monospace">fox   → 15, gnu→1</text>
+      <!-- Arrow -->
+      <text x="388" y="100" text-anchor="middle" fill="#9a9fad" font-size="18">→</text>
+    </svg>
+  </div>
+
+  <h3>Ventajas de tener las claves ordenadas</h3>
+  <ul>
+    <li><strong>Merging eficiente:</strong> igual a mergesort — dos punteros, O(n) en total</li>
+    <li><strong>Índice en memoria disperso:</strong> no necesitas guardar <em>todos</em> los offsets en memoria, solo uno cada ~kilobyte. Para buscar "dog", buscás entre "cat" y "fox" en disco</li>
+    <li><strong>Compresión:</strong> un bloque entre dos entradas del índice puede comprimirse — menos I/O</li>
+    <li><strong>Range queries:</strong> "dame todas las claves entre 'cat' y 'fox'" — search en índice + scan secuencial. ¡Resuelve la limitación del hash index!</li>
+  </ul>
+</div>
+
+<div class="section">
+  <h2>🌲 LSM-Trees — Log-Structured Merge-Tree</h2>
+  <p>LSM-Tree combina SSTables con una estructura en memoria: el <strong>memtable</strong>. Usado por LevelDB, RocksDB, Cassandra, HBase, y muchos más.</p>
+
+  <div class="diagram">
+    <svg width="620" height="240" viewBox="0 0 620 240">
+      <text x="310" y="20" text-anchor="middle" fill="#7aa2f7" font-size="12" font-weight="bold">LSM-Tree: Flujo de datos escritura → disco</text>
+
+      <!-- Write path -->
+      <rect x="20" y="40" width="580" height="30" rx="4" fill="#25262d"/>
+      <text x="310" y="60" text-anchor="middle" fill="#7aa2f7" font-size="11">① Write → WAL (crash safety) + ② Memtable en RAM (Red-Black Tree / AVL tree)</text>
+
+      <!-- Memtable -->
+      <rect x="20" y="85" width="140" height="80" rx="8" fill="#25262d" stroke="#7aa2f7"/>
+      <text x="90" y="104" text-anchor="middle" fill="#7aa2f7" font-size="11" font-weight="bold">Memtable (RAM)</text>
+      <text x="90" y="120" text-anchor="middle" fill="#9a9fad" font-size="9">Nuevo: apple=5</text>
+      <text x="90" y="135" text-anchor="middle" fill="#9a9fad" font-size="9">cat=12, dog=6</text>
+      <text x="90" y="150" text-anchor="middle" fill="#e6c07b" font-size="9">Cuando llega a ~4MB →</text>
+
+      <!-- Arrow down -->
+      <line x1="90" y1="165" x2="90" y2="185" stroke="#e6c07b" stroke-width="1.5" marker-end="url(#arr3)"/>
+      <defs><marker id="arr3" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#e6c07b"/></marker></defs>
+
+      <!-- L0 -->
+      <rect x="20" y="185" width="580" height="28" rx="4" fill="#1a2e22" stroke="#6fcf97"/>
+      <text x="310" y="203" text-anchor="middle" fill="#6fcf97" font-size="10">③ Flush a disco → SSTable L0 (varios, no ordenados entre sí)</text>
+
+      <!-- Compaction arrows -->
+      <line x1="310" y1="213" x2="310" y2="225" stroke="#9a9fad" stroke-width="1" marker-end="url(#arr4)"/>
+      <defs><marker id="arr4" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto"><path d="M0,0 L0,5 L5,2.5 z" fill="#9a9fad"/></marker></defs>
+      <text x="310" y="237" text-anchor="middle" fill="#9a9fad" font-size="9">④ Compaction en background: L0 → L1 → L2 → L3 … (size-tiered o leveled)</text>
+    </svg>
+  </div>
+
+  <h3>Flujo detallado de escritura en LSM</h3>
+  <ol style="padding-left:20px;margin-bottom:14px">
+    <li style="margin-bottom:8px">La escritura va al <strong>WAL</strong> (Write-Ahead Log) en disco — para recuperación ante crash</li>
+    <li style="margin-bottom:8px">También se inserta en el <strong>memtable</strong> (un balanced tree en RAM: Red-Black tree, AVL)</li>
+    <li style="margin-bottom:8px">El memtable tiene orden automático (es un BST), así que cuando se llena (~4MB), se escribe al disco como un SSTable ordenado</li>
+    <li style="margin-bottom:8px">En background, el proceso de <strong>compaction</strong> merge-sortea SSTables para producir SSTables más grandes y ordenados</li>
+  </ol>
+
+  <h3>Lectura en LSM</h3>
+  <p>Para leer una clave: busca en memtable → SSTable L0 más reciente → L0 más antiguo → L1 → L2… Puede ser lento si la clave no existe. Solución: <strong>Bloom filters</strong> — una estructura probabilística que te dice con certeza cuando una clave NO está en un SSTable (puede dar falsos positivos, nunca falsos negativos). Esto evita buscar en SSTables que definitivamente no tienen la clave.</p>
+
+  <h3>Size-tiered vs Leveled Compaction</h3>
+  <div class="two-col">
+    <div class="col-box">
+      <div class="col-title lsm">Size-tiered (Cassandra default)</div>
+      <ul class="col-list">
+        <li>SSTables nuevos y pequeños se mergean con los existentes del mismo tamaño</li>
+        <li>Menor write amplification</li>
+        <li>Más espacio en disco (datos antiguos y nuevos coexisten)</li>
+        <li>Lecturas más lentas (más SSTables a revisar)</li>
+      </ul>
+    </div>
+    <div class="col-box">
+      <div class="col-title btree">Leveled (LevelDB / RocksDB default)</div>
+      <ul class="col-list">
+        <li>Las claves se dividen en rangos; cada key solo existe en 1 SSTable por level</li>
+        <li>Mayor write amplification (un dato puede escribirse muchas veces)</li>
+        <li>Menos espacio en disco</li>
+        <li>Lecturas más predecibles</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>🌳 B-Trees — El Estándar de la Industria</h2>
+  <p>Los B-Trees son la estructura de índice más utilizada en bases de datos relacionales (PostgreSQL, MySQL, Oracle). A diferencia de LSM-trees que tratan el disco como un log, los B-Trees dividen el disco en <strong>páginas de tamaño fijo</strong> (típicamente 4KB).</p>
+
+  <div class="diagram">
+    <svg width="620" height="220" viewBox="0 0 620 220">
+      <text x="310" y="20" text-anchor="middle" fill="#7aa2f7" font-size="12" font-weight="bold">B-Tree: páginas de 4KB, branching factor ~100-200</text>
+
+      <!-- Root -->
+      <rect x="220" y="35" width="180" height="36" rx="6" fill="#25262d" stroke="#7aa2f7"/>
+      <text x="310" y="58" text-anchor="middle" fill="#7aa2f7" font-size="12" font-weight="bold">Raíz: [100 | 200 | 300]</text>
+
+      <!-- Level 1 -->
+      <rect x="20" y="100" width="120" height="36" rx="6" fill="#25262d" stroke="#e6c07b"/>
+      <text x="80" y="123" text-anchor="middle" fill="#e6c07b" font-size="11">[10|50|80]</text>
+
+      <rect x="160" y="100" width="120" height="36" rx="6" fill="#25262d" stroke="#e6c07b"/>
+      <text x="220" y="123" text-anchor="middle" fill="#e6c07b" font-size="11">[110|150|180]</text>
+
+      <rect x="340" y="100" width="120" height="36" rx="6" fill="#25262d" stroke="#e6c07b"/>
+      <text x="400" y="123" text-anchor="middle" fill="#e6c07b" font-size="11">[210|250|280]</text>
+
+      <rect x="480" y="100" width="120" height="36" rx="6" fill="#25262d" stroke="#e6c07b"/>
+      <text x="540" y="123" text-anchor="middle" fill="#e6c07b" font-size="11">[310|350|380]</text>
+
+      <!-- Lines from root -->
+      <line x1="250" y1="71" x2="80" y2="100" stroke="#3a3d48"/>
+      <line x1="280" y1="71" x2="220" y2="100" stroke="#3a3d48"/>
+      <line x1="340" y1="71" x2="400" y2="100" stroke="#3a3d48"/>
+      <line x1="370" y1="71" x2="540" y2="100" stroke="#3a3d48"/>
+
+      <!-- Leaf pages -->
+      <rect x="20" y="165" width="80" height="40" rx="4" fill="#1a2e22" stroke="#6fcf97"/>
+      <text x="60" y="180" text-anchor="middle" fill="#6fcf97" font-size="9">key:10</text>
+      <text x="60" y="194" text-anchor="middle" fill="#6fcf97" font-size="9">→ row data</text>
+
+      <rect x="120" y="165" width="80" height="40" rx="4" fill="#1a2e22" stroke="#6fcf97"/>
+      <text x="160" y="180" text-anchor="middle" fill="#6fcf97" font-size="9">key:50</text>
+      <text x="160" y="194" text-anchor="middle" fill="#6fcf97" font-size="9">→ row data</text>
+
+      <text x="310" y="185" text-anchor="middle" fill="#9a9fad" font-size="10">… páginas hoja: contienen los datos reales o punteros a ellos</text>
+
+      <!-- Labels -->
+      <text x="310" y="210" text-anchor="middle" fill="#9a9fad" font-size="9">4 niveles → branching factor 200 → puede indexar 200⁴ = 1.6 billones de registros</text>
+    </svg>
+  </div>
+
+  <h3>Escritura en B-Trees</h3>
+  <p>Para actualizar un valor: encuentra la página hoja, modifica el valor <em>in-place</em>, escribe la página de vuelta. Para agregar una clave nueva: si la página tiene espacio, agrega. Si no, <strong>split</strong> de la página en dos y actualiza el padre.</p>
+
+  <h3>Durabilidad: Write-Ahead Log (WAL)</h3>
+  <p>Si el DB cae mientras está en mitad de un split de página, el árbol queda en estado inconsistente. Solución: antes de cualquier modificación al B-tree, escribe la operación al <strong>WAL</strong> (redo log). Al recuperarse del crash, replaya el WAL para llegar a un estado consistente. Esto añade escrituras pero garantiza durabilidad.</p>
+
+  <p>Variante: <strong>copy-on-write</strong> (LMDB). En lugar de modificar páginas in-place + WAL, escribe una nueva versión de la página en otro lugar y actualiza el puntero del padre atómicamente. No necesita WAL; más simple de razonar sobre concurrencia y snapshots.</p>
+</div>
+
+<div class="section">
+  <h2>⚔️ B-Trees vs LSM-Trees — La Comparación Real</h2>
+
+  <div class="two-col">
+    <div class="col-box">
+      <div class="col-title lsm">LSM-Trees (LevelDB, RocksDB, Cassandra)</div>
+      <ul class="col-list">
+        <li>✓ Mejor throughput de escritura (solo append sequencial)</li>
+        <li>✓ Mejor compresión (sin fragmentación interna)</li>
+        <li>✓ Menor write amplification en workloads de alta escritura</li>
+        <li>✗ Compaction puede interferir con I/O de lecturas activas</li>
+        <li>✗ Una clave puede existir en múltiples SSTables — locks más complejos</li>
+        <li>✗ Read latency menos predecible</li>
+      </ul>
+    </div>
+    <div class="col-box">
+      <div class="col-title btree">B-Trees (PostgreSQL, MySQL, Oracle)</div>
+      <ul class="col-list">
+        <li>✓ Read latency predecible (profundidad del árbol = log N hops)</li>
+        <li>✓ Cada clave existe exactamente en un lugar → transacciones más simples</li>
+        <li>✓ Madurez: décadas de optimizaciones</li>
+        <li>✗ Write amplification mayor (WAL + página misma)</li>
+        <li>✗ Fragmentación interna (páginas medio vacías después de deletes)</li>
+        <li>✗ Menos compresión efectiva</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Write Amplification:</strong> cuando escribís 1 byte de datos, cuántos bytes termina escribiendo el storage engine en disco. En B-Trees: escribís al WAL + a la página. En LSM: el mismo dato puede ser reescrito múltiples veces durante compaction. En SSDs, cada write cycle desgasta el chip — write amplification importa para la vida útil.
+  </div>
+
+  <h3>¿Cuándo elegir cada uno?</h3>
+  <ul>
+    <li><strong>Alta escritura, tiempo real:</strong> LSM (Cassandra para IoT, logs, time-series)</li>
+    <li><strong>Lecturas predecibles, transacciones:</strong> B-Tree (PostgreSQL para e-commerce, financial)</li>
+    <li><strong>General purpose:</strong> InnoDB (MySQL) y PostgreSQL usan B-Trees y son la opción sólida por default</li>
+  </ul>
+</div>
+
+<div class="section">
+  <h2>🔍 Otros Tipos de Índices</h2>
+
+  <h3>Índices secundarios</h3>
+  <p>Los índices primarios indexan por la primary key. Los secundarios indexan por otro campo. En PostgreSQL: <code>CREATE INDEX ON orders(customer_id)</code>. Las claves no son únicas en índices secundarios — múltiples filas pueden tener el mismo customer_id. Se resuelve guardando una lista de row IDs o haciendo la clave única agregando el row ID.</p>
+
+  <h3>Clustered vs Non-clustered Indexes</h3>
+  <ul>
+    <li><strong>Clustered:</strong> los datos de la fila se guardan directamente en el índice (no hay un salto adicional). El índice IS el almacenamiento. InnoDB siempre usa clustered index en la primary key.</li>
+    <li><strong>Non-clustered:</strong> el índice solo guarda punteros a las filas reales (heap file). Una lectura = buscar en el índice + buscar en el heap. Más lento, pero más flexible.</li>
+    <li><strong>Covering index:</strong> incluye columnas adicionales en el índice para que algunos queries se satisfagan solo con el índice, sin leer el heap. Trade-off: más espacio.</li>
+  </ul>
+
+  <h3>Multi-column indexes</h3>
+  <p>Un índice sobre (last_name, first_name) permite queries eficientes en last_name, o en last_name + first_name, pero NO solo en first_name. El orden importa. Para queries geoespaciales como "restaurantes cerca de mí" necesitas índices que soporten 2D: R-trees, space-filling curves (Cassandra usa Hilbert curve para localidad espacial).</p>
+
+  <h3>Full-text e índices fuzzy</h3>
+  <p>Lucene (base de Elasticsearch) usa una estructura similar a SSTables para buscar texto con tolerancia a typos. El índice mapea palabras → documentos. Búsqueda fuzzy mediante Levenshtein automata — permite encontrar "MercadoLibre" si escribís "MercadoLibrr".</p>
+
+  <div class="callout ok">
+    <strong>In-memory databases:</strong> Si toda la data cabe en RAM, ¿por qué escribir al disco? Redis y Memcached son puramente in-memory. VoltDB, MemSQL ofrecen durabilidad escribiendo al disco en background. La ventaja no es velocidad de acceso (el OS cachea igual), sino eliminar la serialización a un formato compatible con disco.
+  </div>
+</div>
+
+<div class="section">
+  <h2>📚 Glosario</h2>
+  <div class="glossary-grid">
+    <div class="gterm"><div class="gterm-name">Write Amplification</div><div class="gterm-def">Ratio entre bytes escritos al disco vs bytes de datos originales. 1 byte de dato puede causar 10+ bytes de escritura en disco con compaction y WAL.</div></div>
+    <div class="gterm"><div class="gterm-name">Memtable</div><div class="gterm-def">Buffer de escrituras en RAM (balanced tree). Mantiene claves ordenadas. Cuando se llena (~4MB), se flushea a SSTable en disco.</div></div>
+    <div class="gterm"><div class="gterm-name">SSTable</div><div class="gterm-def">Sorted String Table. Archivo inmutable en disco con key-value ordenados. Base de los LSM-Trees. Mergeable eficientemente con merge sort.</div></div>
+    <div class="gterm"><div class="gterm-name">Bloom Filter</div><div class="gterm-def">Estructura probabilística que responde "la clave DEFINITIVAMENTE no está aquí" con 0% falsos negativos. Evita buscar en SSTables innecesariamente.</div></div>
+    <div class="gterm"><div class="gterm-name">WAL</div><div class="gterm-def">Write-Ahead Log. Log append-only donde se registran todas las operaciones ANTES de ejecutarlas. Permite recovery ante crashes. Usan B-Trees y LSM.</div></div>
+    <div class="gterm"><div class="gterm-name">Compaction</div><div class="gterm-def">Proceso background de LSM: merge de SSTables para eliminar versiones antiguas, reducir espacio y mejorar performance de lectura. Compite con I/O de queries activos.</div></div>
+    <div class="gterm"><div class="gterm-name">Branching Factor</div><div class="gterm-def">Número de hijos por nodo en un B-Tree. Típicamente 100-200. Con 4 niveles: 200^4 = 1.6 billones de registros indexables. Determina la altura del árbol.</div></div>
+    <div class="gterm"><div class="gterm-name">Covering Index</div><div class="gterm-def">Índice que incluye todas las columnas de un query, evitando el salto al heap. "Index-only scan" en PostgreSQL. Más espacio, lecturas más rápidas.</div></div>
+  </div>
+</div>
+
+<div class="quiz-section">
+  <h2>🧠 Quiz — 5 Preguntas</h2>
+  <div id="quiz-container"></div>
+  <div class="score-banner" id="score-banner">
+    <div class="score-big" id="score-big"></div>
+    <div style="color:var(--muted);margin-top:8px">¡Muy bien! Cap.3 Parte 2: OLAP y Columnar Storage</div>
+  </div>
+</div>
+
+<button class="btn-complete pending" id="btn-complete" onclick="toggleComplete()">
+  ✓ Marcar parte 3.1 como completada
+</button>
+
+</div>
+<script>
+const PART_ID = "3.1";
+const STORAGE_KEY = "ddia-lectura-progreso";
+const PARTS = [
+  {id:"1.1",label:"Cap.1 — Sistemas & Confiabilidad"},
+  {id:"1.2",label:"Cap.1 — Escalabilidad & Mantenibilidad"},
+  {id:"2.1",label:"Cap.2 — Relacional vs Documental"},
+  {id:"2.2",label:"Cap.2 — Grafos & Datalog"},
+  {id:"3.1",label:"Cap.3 — Indexes: Hash, LSM, B-Tree"},
+  {id:"3.2",label:"Cap.3 — OLAP & Columnar Storage"},
+  {id:"4.1",label:"Cap.4 — Formatos: JSON, Protobuf, Avro"},
+  {id:"4.2",label:"Cap.4 — Dataflow: REST, RPC, Mensajería"},
+  {id:"5.1",label:"Cap.5 — Replicación: Leader/Follower"},
+  {id:"5.2",label:"Cap.5 — Multi-Leader & Leaderless"},
+  {id:"6.1",label:"Cap.6 — Particionado por clave e índices"},
+  {id:"6.2",label:"Cap.6 — Rebalanceo & Routing"},
+  {id:"7.1",label:"Cap.7 — ACID, Isolation, Lost Updates"},
+  {id:"7.2",label:"Cap.7 — Serializability, 2PL, SSI"},
+  {id:"8.1",label:"Cap.8 — Redes, Relojes, Process Pauses"},
+  {id:"8.2",label:"Cap.8 — Verdad, Byzantinos, Modelos"},
+  {id:"9.1",label:"Cap.9 — Linearizabilidad & Orden"},
+  {id:"9.2",label:"Cap.9 — Transacciones distribuidas & Consenso"},
+  {id:"10.1",label:"Cap.10 — Unix Tools & MapReduce"},
+  {id:"10.2",label:"Cap.10 — Joins, Outputs & Graph Processing"},
+  {id:"11.1",label:"Cap.11 — Mensajería, Logs, CDC, Event Sourcing"},
+  {id:"11.2",label:"Cap.11 — Stream Processing & Fault Tolerance"},
+  {id:"12.1",label:"Cap.12 — Integración & Unbundling"},
+  {id:"12.2",label:"Cap.12 — Corrección, Verificación & Ética"},
+];
+const QUIZ = [
+  {
+    q:"¿Por qué Bitcask (hash index) requiere que todas las claves quepan en RAM, y qué problema fundamental tiene para range queries?",
+    opts:[
+      {t:"Porque es una limitación del lenguaje Erlang en que está implementado", why:"No tiene nada que ver con el lenguaje. Es una limitación arquitectural del hash index."},
+      {t:"Porque el hash map en memoria contiene las claves como strings y RAM es más cara", why:"El tamaño en bytes de las claves es parte del problema pero no la razón de fondo."},
+      {t:"Porque el índice ES el hash map en RAM: si no cabe, no puedes hacer O(1) lookup. Y un hash map no tiene orden, así que 'dame keys entre A y Z' requiere escanear todo", correct:true},
+      {t:"Porque los hash indexes no soportan valores mayores a 4KB", why:"No existe tal limitación en Bitcask. El límite es de claves en RAM, no del tamaño de los valores."},
+    ],
+    explain:"El hash index EN MEMORIA mapea cada clave → byte offset en disco. Si tienes 10M de claves y cada una ocupa 50 bytes de RAM, necesitas ~500MB de RAM solo para el índice. Si el servidor tiene 1GB de RAM, bien. Si tienes 100M de claves, no cabe. Además, un hash map no tiene un orden natural: si buscás 'dame todos los usuarios con age entre 20 y 30', el hash no te ayuda — tendrías que escanear todos los valores. Los SSTables y B-Trees resuelven ambas limitaciones."
+  },
+  {
+    q:"¿Cómo resuelve el LSM-Tree el problema de escribir datos ordenados en disco sin hacer escrituras aleatorias?",
+    opts:[
+      {t:"Ordenando los datos en el background mientras el sistema está idle", why:"El ordenamiento ocurre en el memtable, en RAM, antes de escribir al disco — no es una tarea de background separada para ordenar."},
+      {t:"Escribiendo primero en un árbol balanceado en RAM (memtable) que mantiene el orden, y solo flusheando al disco como SSTable ordenado cuando está lleno", correct:true},
+      {t:"Usando un algoritmo de quicksort en disco para mantener el archivo ordenado", why:"Quicksort en disco requeriría escrituras aleatorias — exactamente lo que LSM evita. No se puede hacer in-place en un log."},
+      {t:"Guardando un índice invertido que mapea offsets a claves", why:"El índice invertido es un concepto de full-text search. LSM usa memtable + SSTable + compaction."},
+    ],
+    explain:"La gracia del LSM es dividir el problema: la parte de ordenamiento ocurre en RAM (el memtable es un Red-Black tree o AVL tree que mantiene claves ordenadas automáticamente en O(log n) por inserción). Cuando el memtable llega a ~4MB, se vuelca a disco de una vez como una escritura secuencial grande — el SSTable es inmutable y perfectamente ordenado. Escrituras en disco: todas secuenciales, nunca aleatorias. En B-Trees, una inserción puede requerir buscar la página correcta y escribir en posición aleatoria."
+  },
+  {
+    q:"¿Qué son los Bloom filters y por qué son esenciales en los LSM-Trees?",
+    opts:[
+      {t:"Son filtros de bloom que eliminan datos duplicados durante el merging de SSTables", why:"La deduplicación durante el merging no es el rol de Bloom filters — eso lo hace el merge sort directamente tomando el valor más reciente."},
+      {t:"Son estructuras probabilísticas que permiten saber con certeza si una clave NO está en un SSTable, evitando leer SSTables innecesarios", correct:true},
+      {t:"Son algoritmos de compresión que reducen el tamaño de los SSTables en disco", why:"La compresión de SSTables existe pero es separada. Los Bloom filters son sobre membership queries, no compresión."},
+      {t:"Son índices secundarios que el LSM crea automáticamente sobre las columnas más accedidas", why:"Los índices secundarios son una feature diferente. Los Bloom filters son sobre el problema de 'esta clave existe en este SSTable'."},
+    ],
+    explain:"Imagine que buscás la clave 'user:99999' que NO existe en la DB. Sin Bloom filters: deberías buscar en el memtable, luego en cada SSTable del L0, L1, L2... (potencialmente decenas de archivos). Con Bloom filters: cada SSTable tiene un Bloom filter asociado. Consultás el filter — te dice 'definitivamente no está aquí' en O(1). Solo buscás en los SSTables donde el filter dice 'podría estar'. Puede haber falsos positivos (dice 'podría estar' pero no está), nunca falsos negativos. Esto hace las lecturas de claves inexistentes O(1) en vez de O(n SSTables)."
+  },
+  {
+    q:"¿Por qué los B-Trees tienen mejor performance de lectura predecible que los LSM-Trees en muchos workloads?",
+    opts:[
+      {t:"Porque los B-Trees están almacenados en RAM mientras los LSM-Trees están en disco", why:"Ambos están en disco. El OS cachea páginas de B-Tree en RAM también (buffer pool), pero ambos estructuras viven en disco."},
+      {t:"Porque cada clave en un B-Tree existe exactamente en un solo lugar, y la profundidad del árbol es fija (log N), mientras que en LSM una clave puede estar en múltiples SSTables y el compaction compite con las lecturas", correct:true},
+      {t:"Porque los B-Trees usan índices hash internamente para algunas páginas", why:"Los B-Trees no usan hashes internamente. Son árboles ordenados donde cada nodo tiene un rango de claves."},
+      {t:"Porque los B-Trees tienen mayor branching factor que los LSM-Trees", why:"El branching factor es una propiedad de los B-Trees pero no es lo que determina la predictibilidad vs LSM."},
+    ],
+    explain:"En un B-Tree de altura 4 (suficiente para billones de registros), una lectura siempre es 4 seeks de disco. Determinístico. En LSM: para leer una clave, buscás en memtable (O(log m)), luego posiblemente en varios SSTables del L0 (que no están ordenados entre sí), luego L1, L2... Además, el proceso de compaction en background hace I/O intensivo que compite con tus lecturas. En producción, LSM puede tener latency spikes cuando compaction está activo. B-Trees no tienen ese problema — no hay proceso de background que reordene todo."
+  },
+  {
+    q:"Tienes un sistema en MercadoLibre que recibe 100,000 escrituras por segundo de eventos de 'item viewed' para analytics en tiempo real, con lecturas ocasionales de totales. ¿Qué storage engine sería más apropiado y por qué?",
+    opts:[
+      {t:"B-Tree (PostgreSQL) porque es el estándar de la industria y el más probado", why:"B-Trees son excelentes para transacciones y lecturas predecibles, pero para escritura masiva de eventos el write amplification (WAL + página) genera más I/O que LSM."},
+      {t:"Hash Index (Bitcask/Riak) porque O(1) escritura es lo más rápido posible", why:"Bitcask escribe O(1) pero todas las claves deben estar en RAM, y los range queries son O(n). Para analytics time-series esto es un problema."},
+      {t:"LSM-Tree (Cassandra o RocksDB) porque el workload de alta escritura y baja lectura es exactamente para lo que fue optimizado — escrituras sequenciales al memtable, compaction en background", correct:true},
+      {t:"Triple-store (Datomic) porque los eventos de analytics tienen relaciones complejas", why:"Datomic/triple-stores son para datos con relaciones semánticas, no para time-series de alta velocidad."},
+    ],
+    explain:"'item_viewed' en ML es un caso clásico de time-series de alta escritura: miles de eventos por segundo, necesitás agregarlos (COUNT, SUM) para dashboards, lecturas ocasionales de totales. Esto es exactamente para lo que Cassandra y ClickHouse fueron diseñados. En Cassandra (LSM): las 100K escrituras por segundo van al memtable → flush secuencial a disco. La compaction agrupa los eventos por tiempo. Los B-Trees de PostgreSQL tendrían mucha más write amplification y más I/O aleatorio para sostener 100K writes/s. Para lecturas analíticas, además, querrías columnar storage (parte 3.2)."
+  },
+];
+
+function getCompleted(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY))||[];}catch(e){return[];}}
+function saveCompleted(list){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(list));}catch(e){}}
+
+function renderTimeline(){
+  const done=getCompleted();
+  const tl=document.getElementById('timeline');
+  tl.innerHTML='';
+  PARTS.forEach((p,i)=>{
+    const isCurrent=p.id===PART_ID;
+    const isDone=done.includes(p.id);
+    const node=document.createElement('div');
+    node.className='tl-node';
+    node.innerHTML=`<div class="tl-dot ${isDone?'done':isCurrent?'current':''}">${isDone?'✓':i+1}</div><div class="tl-label ${isCurrent?'current':''}">${p.id}</div>`;
+    tl.appendChild(node);
+    if(i<PARTS.length-1){
+      const line=document.createElement('div');
+      line.className=`tl-line ${isDone?'done':''}`;
+      tl.appendChild(line);
+    }
+  });
+  const n=done.length;
+  const pct=Math.round(n/PARTS.length*100);
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-text').textContent=`${n} de ${PARTS.length} partes completadas (${pct}%)`;
+  document.getElementById('prog-frac').textContent=`Cap ${Math.ceil(n/2)} de 12`;
+}
+
+function renderCompleteBtn(){
+  const done=getCompleted();
+  const btn=document.getElementById('btn-complete');
+  if(done.includes(PART_ID)){
+    btn.className='btn-complete done';
+    btn.textContent='✓ Parte 3.1 completada';
+  } else {
+    btn.className='btn-complete pending';
+    btn.textContent='✓ Marcar parte 3.1 como completada';
+  }
+}
+
+function toggleComplete(){
+  let done=getCompleted();
+  if(done.includes(PART_ID)){done=done.filter(x=>x!==PART_ID);}else{done.push(PART_ID);}
+  saveCompleted(done);renderTimeline();renderCompleteBtn();
+}
+
+let answers={};
+function renderQuiz(){
+  const c=document.getElementById('quiz-container');
+  c.innerHTML='';
+  QUIZ.forEach((q,qi)=>{
+    const letters=['A','B','C','D'];
+    const optsHtml=q.opts.map((o,oi)=>`
+      <div class="opt" id="opt-${qi}-${oi}" onclick="pick(${qi},${oi})">
+        <span class="opt-letter">${letters[oi]}</span>
+        <span class="opt-body">${o.t}${o.why?`<div class="opt-why" id="why-${qi}-${oi}">${o.why}</div>`:''}</span>
+      </div>`).join('');
+    const block=document.createElement('div');
+    block.className='q-block';
+    block.innerHTML=`<div class="q-num">Pregunta ${qi+1} de ${QUIZ.length}</div><div class="q-text">${q.q}</div>${optsHtml}<div class="q-explain" id="explain-${qi}">${q.explain}</div>`;
+    c.appendChild(block);
+  });
+}
+
+function pick(qi,oi){
+  if(answers[qi]!==undefined)return;
+  answers[qi]=oi;
+  const q=QUIZ[qi];
+  q.opts.forEach((o,i)=>{
+    const el=document.getElementById(`opt-${qi}-${i}`);
+    el.classList.add('disabled');
+    if(o.correct){el.classList.add('correct');}
+    else if(i===oi){el.classList.add('wrong');const why=document.getElementById(`why-${qi}-${i}`);if(why)why.style.display='block';}
+  });
+  document.getElementById(`explain-${qi}`).style.display='block';
+  if(Object.keys(answers).length===QUIZ.length){
+    const correct=QUIZ.filter((q,i)=>q.opts[answers[i]]?.correct).length;
+    const banner=document.getElementById('score-banner');
+    document.getElementById('score-big').textContent=`${correct}/${QUIZ.length}`;
+    banner.style.display='block';
+  }
+}
+
+renderTimeline();renderCompleteBtn();renderQuiz();
+</script>
+</body>
+</html>
