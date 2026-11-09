@@ -734,8 +734,8 @@ document.addEventListener('mousedown', e => {
 function showToolbar(range){
   const tb = document.getElementById('sel-toolbar');
   const rect = range.getBoundingClientRect();
-  tb.style.top = (window.scrollY + rect.top - 52) + 'px';
-  tb.style.left = (window.scrollX + rect.left + rect.width/2 - 80) + 'px';
+  tb.style.top = Math.max(8, rect.top - 52) + 'px';
+  tb.style.left = Math.max(8, Math.min(rect.left + rect.width/2 - 80, window.innerWidth - 200)) + 'px';
   tb.classList.add('visible');
 }
 function hideToolbar(){
@@ -839,8 +839,8 @@ function showNotePopover(id, e){
   activePopoverNoteId = id;
   const pop = document.getElementById('note-popover');
   document.getElementById('np-text').textContent = n.note;
-  const x = Math.min(e.clientX + window.scrollX, window.innerWidth - 320);
-  const y = e.clientY + window.scrollY + 16;
+  const x = Math.min(e.clientX, window.innerWidth - 320);
+  const y = Math.min(e.clientY + 16, window.innerHeight - 120);
   pop.style.left = x+'px';
   pop.style.top = y+'px';
   pop.classList.add('visible');
